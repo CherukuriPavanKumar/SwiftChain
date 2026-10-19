@@ -1,17 +1,27 @@
 'use client';
 
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useEthPrice } from "./components/eth-price-ticker";
+import SettlementTrackerModal, { type SettlementTrackerData } from "./components/settlement-tracker-modal";
 
-interface TransferRecord {
+export interface TransferRecord {
   id: number;
   senderAddress: string;
   recipientAddress: string;
   amount: string;
   chainId: number;
   assetSymbol: string;
+  tokenAddress?: string | null;
+  inrSourceAmount?: string | null;
+  referenceRate?: string | null;
+  estimatedDestinationUsd?: string | null;
+  networkFeeEth?: string | null;
   status: string;
   transactionHash: string | null;
+  isSimulatedPayout?: boolean;
+  payoutStatus?: string;
+  payoutCompletedAt?: string | null;
   createdAt: string;
   confirmedAt: string | null;
 }
@@ -22,24 +32,27 @@ function truncateAddress(address: string) {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  confirmed: "bg-green-500/20 text-green-400",
-  pending:   "bg-yellow-500/20 text-yellow-400",
-  failed:    "bg-red-500/20 text-red-400",
-  rejected:  "bg-red-500/20 text-red-400",
-  draft:     "bg-gray-500/20 text-gray-400",
-  "awaiting signature": "bg-blue-500/20 text-blue-400",
+  confirmed: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+  pending: "bg-amber-500/20 text-amber-400 border border-amber-500/30",
+  failed: "bg-rose-500/20 text-rose-400 border border-rose-500/30",
+  rejected: "bg-rose-500/20 text-rose-400 border border-rose-500/30",
+  draft: "bg-gray-500/20 text-gray-400 border border-gray-500/30",
+  "awaiting signature": "bg-blue-500/20 text-blue-400 border border-blue-500/30",
 };
 
 function StatusBadge({ status }: { status: string }) {
   const cls = STATUS_STYLES[status] ?? "bg-gray-500/20 text-gray-400";
   return (
-    <span className={`capitalize px-2 py-0.5 rounded text-xs font-medium ${cls}`}>
+    <span className={`capitalize px-2 py-0.5 rounded text-[10px] font-medium ${cls}`}>
       {status}
     </span>
   );
 }
 
 export default function TransferHistory() {
+  const [selectedTrackerId, setSelectedTrackerId] = useState<number | null>(null);
+  const [fallbackTransfer, setFallbackTransfer] = useState<TransferRecord | null>(null);
+
   const { data: transfers, isLoading, error } = useQuery<TransferRecord[]>({
     queryKey: ["transfers"],
     queryFn: async () => {
@@ -47,86 +60,195 @@ export default function TransferHistory() {
       if (!response.ok) throw new Error("Failed to load transfers");
       return response.json();
     },
+    refetchInterval: (query) => {
+      // Poll dynamically: every 2.5s if any transfer is active/pending, otherwise every 15s
+      const data = query.state.data;
+      const hasActive = data?.some(
+        (t) =>
+          t.status === "pending" ||
+          t.status === "awaiting signature" ||
+          t.payoutStatus === "simulated_pending"
+      );
+      return hasActive ? 2500 : 15000;
+    },
     retry: 3,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
   });
 
-  const { data: ethPrice } = useEthPrice();
+  const { data: marketData } = useEthPrice();
 
-  function toINR(ethAmount: string): string | null {
-    if (!ethPrice?.inr) return null;
-    const eth = parseFloat(ethAmount);
-    if (isNaN(eth)) return null;
-    const inr = eth * ethPrice.inr;
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 2,
-    }).format(inr);
+  const activeModalTransfer = useMemo<SettlementTrackerData | null>(() => {
+    if (selectedTrackerId === null && !fallbackTransfer) return null;
+    const found = transfers?.find((t) => t.id === selectedTrackerId);
+    const target = found ?? fallbackTransfer;
+    if (!target) return null;
+
+    return {
+      id: target.id,
+      senderAddress: target.senderAddress,
+      recipientAddress: target.recipientAddress,
+      amount: target.amount,
+      assetSymbol: target.assetSymbol,
+      chainId: target.chainId,
+      inrSourceAmount: target.inrSourceAmount,
+      referenceRate: target.referenceRate,
+      estimatedDestinationUsd: target.estimatedDestinationUsd,
+      networkFeeEth: target.networkFeeEth,
+      status: target.status,
+      transactionHash: target.transactionHash,
+      isSimulatedPayout: target.isSimulatedPayout,
+      payoutStatus: target.payoutStatus,
+      payoutCompletedAt: target.payoutCompletedAt,
+      createdAt: target.createdAt,
+      confirmedAt: target.confirmedAt,
+    };
+  }, [transfers, selectedTrackerId, fallbackTransfer]);
+
+  function formatFiatValue(tx: TransferRecord): string | null {
+    if (tx.inrSourceAmount) {
+      return `₹${parseFloat(tx.inrSourceAmount).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+    }
+    // Fallback calculation using live rate
+    if (tx.assetSymbol === "USDC") {
+      const usdcInr = marketData?.usdc?.inr ?? 94.88;
+      const val = parseFloat(tx.amount) * usdcInr;
+      return !isNaN(val) ? `≈ ₹${val.toFixed(2)}` : null;
+    }
+    if (marketData?.inr) {
+      const val = parseFloat(tx.amount) * marketData.inr;
+      return !isNaN(val) ? `≈ ₹${val.toFixed(2)}` : null;
+    }
+    return null;
   }
 
   return (
-    <div className="mt-8 p-4 border border-white/10 rounded-xl bg-white/5 w-full">
-      <h2 className="text-lg font-bold mb-4 text-white">Transfer History</h2>
+    <div className="mt-8 p-5 border border-white/10 rounded-2xl bg-white/5 w-full shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 border-b border-white/5 pb-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-bold text-white">Transfer & Remittance History</h2>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono">
+              Live Tracker Available
+            </span>
+          </div>
+          <p className="text-xs text-gray-400 mt-0.5">
+            On-chain testnet transfers and simulated destination payouts with real-time lifecycle tracking
+          </p>
+        </div>
+        <span className="text-[11px] text-gray-500 font-mono self-start sm:self-auto">
+          Persistent via Neon Postgres
+        </span>
+      </div>
 
       {isLoading && (
         <div className="space-y-2">
-          {[1, 2].map((i) => (
-            <div key={i} className="animate-pulse h-16 rounded-lg bg-white/5" />
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse h-16 rounded-xl bg-white/5" />
           ))}
         </div>
       )}
 
       {error && (
-        <p className="text-red-400 text-sm" role="alert">
+        <p className="text-rose-400 text-xs p-3 rounded-lg bg-rose-500/10 border border-rose-500/20" role="alert">
           ⚠ Error loading transfers: {error.message}
         </p>
       )}
 
       {!isLoading && !error && (!transfers || transfers.length === 0) && (
-        <p className="text-gray-500 text-sm">No transfers recorded yet.</p>
+        <div className="p-6 text-center text-gray-400 text-xs bg-black/20 rounded-xl border border-white/5">
+          No transfers recorded yet. Submit a testnet transfer above to see it tracked here.
+        </div>
       )}
 
       {transfers && transfers.length > 0 && (
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {transfers.map((tx) => {
-            const inrEquiv = toINR(tx.amount);
+            const fiatEquiv = formatFiatValue(tx);
+            const isUsdc = tx.assetSymbol === "USDC";
+
             return (
               <li
                 key={tx.id}
-                className="p-3 border border-white/10 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm hover:bg-white/5 transition-colors"
+                className="p-3.5 border border-white/10 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm hover:bg-white/5 transition-all bg-black/20"
               >
-                <div className="min-w-0">
-                  <div className="font-medium text-white truncate">
-                    {truncateAddress(tx.senderAddress)}{" "}
-                    <span className="text-gray-500">→</span>{" "}
-                    {truncateAddress(tx.recipientAddress)}
+                <div className="min-w-0 space-y-1.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span
+                      className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold ${
+                        isUsdc
+                          ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                          : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      }`}
+                    >
+                      {tx.assetSymbol}
+                    </span>
+                    <span className="font-mono text-xs text-white truncate">
+                      {truncateAddress(tx.senderAddress)}{" "}
+                      <span className="text-gray-500">→</span>{" "}
+                      {truncateAddress(tx.recipientAddress)}
+                    </span>
                   </div>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {new Date(tx.createdAt).toLocaleString()}
+
+                  <div className="text-xs text-gray-400 flex items-center gap-2 flex-wrap">
+                    <span>{new Date(tx.createdAt).toLocaleString()}</span>
                     {tx.confirmedAt && (
-                      <span className="ml-2 text-green-600">
-                        · Confirmed {new Date(tx.confirmedAt).toLocaleTimeString()}
+                      <span className="text-emerald-400 text-[11px] font-medium flex items-center gap-1">
+                        <span>✓</span> Confirmed on-chain
                       </span>
                     )}
                   </div>
+
+                  {/* Simulated Payout Status Badge */}
+                  {tx.isSimulatedPayout && tx.status === "confirmed" && (
+                    <div className="flex items-center gap-1.5 text-[10px]">
+                      <span className="text-gray-400">Destination payout:</span>
+                      <span
+                        className={`px-1.5 py-0.5 rounded font-medium ${
+                          tx.payoutStatus === "simulated_completed"
+                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                            : "bg-amber-500/10 text-amber-300 border border-amber-500/20 animate-pulse"
+                        }`}
+                      >
+                        {tx.payoutStatus === "simulated_completed"
+                          ? `Simulated Payout Delivered (${tx.estimatedDestinationUsd ? `$${tx.estimatedDestinationUsd} USD` : "USD"}) ✓`
+                          : "Simulating Destination Settlement..."}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="sm:text-right shrink-0">
-                  <div className="font-semibold text-white">
+                <div className="sm:text-right shrink-0 space-y-1.5">
+                  <div className="font-mono font-bold text-white text-base">
                     {tx.amount} {tx.assetSymbol}
                   </div>
-                  {inrEquiv && (
-                    <div className="text-xs text-gray-400">≈ {inrEquiv}</div>
+                  {fiatEquiv && (
+                    <div className="text-xs text-gray-400">{fiatEquiv}</div>
                   )}
-                  <div className="flex items-center gap-2 sm:justify-end mt-1">
+
+                  <div className="flex items-center gap-2 sm:justify-end flex-wrap">
                     <StatusBadge status={tx.status} />
+
+                    {/* Track Settlement Action Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTrackerId(tx.id);
+                        setFallbackTransfer(tx);
+                      }}
+                      className="px-2 py-0.5 text-xs bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 rounded font-medium transition-colors flex items-center gap-1"
+                      title="Open Live Settlement Tracker"
+                    >
+                      <span>Track Settlement</span>
+                      <span>↗</span>
+                    </button>
+
                     {tx.transactionHash && (
                       <a
                         href={`https://sepolia.etherscan.io/tx/${tx.transactionHash}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-blue-400 underline hover:text-blue-300 transition-colors"
+                        className="text-xs text-blue-400 underline hover:text-blue-300 transition-colors font-mono"
+                        title="View on Sepolia Etherscan"
                       >
                         Etherscan ↗
                       </a>
@@ -138,6 +260,16 @@ export default function TransferHistory() {
           })}
         </ul>
       )}
+
+      {/* Modal instance for reviewing / revisiting any historical transfer */}
+      <SettlementTrackerModal
+        transfer={activeModalTransfer}
+        isOpen={Boolean(activeModalTransfer)}
+        onClose={() => {
+          setSelectedTrackerId(null);
+          setFallbackTransfer(null);
+        }}
+      />
     </div>
   );
 }

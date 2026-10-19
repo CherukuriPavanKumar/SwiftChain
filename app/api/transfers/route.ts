@@ -19,6 +19,16 @@ const createTransferSchema = z.object({
     }),
   chainId: z.coerce.number().int().positive("Chain ID must be a valid positive integer"),
   assetSymbol: z.string().default("ETH"),
+  tokenAddress: z
+    .string()
+    .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid token contract address")
+    .optional()
+    .nullable(),
+  inrSourceAmount: z.string().optional().nullable(),
+  referenceRate: z.string().optional().nullable(),
+  estimatedDestinationUsd: z.string().optional().nullable(),
+  networkFeeEth: z.string().optional().nullable(),
+  platformFeeInr: z.string().optional().nullable(),
   status: z
     .enum(["draft", "awaiting signature", "pending", "confirmed", "failed"])
     .default("draft"),
@@ -27,6 +37,9 @@ const createTransferSchema = z.object({
     .regex(/^0x[a-fA-F0-9]{64}$/, "Invalid transaction hash")
     .optional()
     .nullable(),
+  isSimulatedPayout: z.boolean().optional().default(false),
+  payoutStatus: z.string().optional().default("none"),
+  payoutCompletedAt: z.coerce.date().optional().nullable(),
   createdAt: z.coerce.date().optional(),
   confirmedAt: z.coerce.date().optional().nullable(),
 });
@@ -41,6 +54,9 @@ const updateTransferSchema = z
     status: z
       .enum(["draft", "awaiting signature", "pending", "confirmed", "failed"])
       .optional(),
+    isSimulatedPayout: z.boolean().optional(),
+    payoutStatus: z.string().optional(),
+    payoutCompletedAt: z.coerce.date().optional().nullable(),
     confirmedAt: z.coerce.date().optional().nullable(),
   })
   .refine((data) => data.id !== undefined || data.transactionHash !== undefined, {
@@ -85,8 +101,17 @@ export async function POST(request: Request) {
           amount: data.amount,
           chainId: data.chainId,
           assetSymbol: data.assetSymbol,
+          tokenAddress: data.tokenAddress ?? null,
+          inrSourceAmount: data.inrSourceAmount ?? null,
+          referenceRate: data.referenceRate ?? null,
+          estimatedDestinationUsd: data.estimatedDestinationUsd ?? null,
+          networkFeeEth: data.networkFeeEth ?? null,
+          platformFeeInr: data.platformFeeInr ?? null,
           status: data.status,
           transactionHash: data.transactionHash ?? null,
+          isSimulatedPayout: data.isSimulatedPayout,
+          payoutStatus: data.payoutStatus,
+          payoutCompletedAt: data.payoutCompletedAt ?? null,
           createdAt: data.createdAt,
           confirmedAt: data.confirmedAt ?? null,
         })

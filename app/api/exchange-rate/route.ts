@@ -2,19 +2,35 @@ import { NextResponse } from "next/server";
 
 const CG_BASE = "https://api.coingecko.com/api/v3";
 
-//better to do it every 60sec coz the ratelimits are strict
 export const revalidate = 60;
 
-export interface EthMarketData {
+export interface TokenMarketPrice {
   usd: number;
   inr: number;
   usd_24h_change: number;
   inr_24h_change: number;
+  usd_market_cap?: number;
+  inr_market_cap?: number;
+  usd_24h_vol?: number;
+  inr_24h_vol?: number;
+  last_updated_at: number;
+}
+
+export interface EthMarketData extends TokenMarketPrice {
   usd_market_cap: number;
   inr_market_cap: number;
   usd_24h_vol: number;
   inr_24h_vol: number;
-  last_updated_at: number;
+}
+
+export interface MultiAssetMarketData extends EthMarketData {
+  ethereum: EthMarketData;
+  usdc: TokenMarketPrice;
+  fiatReference: {
+    inrPerUsd: number;
+    source: string;
+    timestamp: number;
+  };
 }
 
 export async function GET() {
@@ -29,7 +45,7 @@ export async function GET() {
 
   try {
     const url = new URL(`${CG_BASE}/simple/price`);
-    url.searchParams.set("ids", "ethereum");
+    url.searchParams.set("ids", "ethereum,usd-coin");
     url.searchParams.set("vs_currencies", "usd,inr");
     url.searchParams.set("include_24hr_change", "true");
     url.searchParams.set("include_market_cap", "true");
@@ -52,10 +68,25 @@ export async function GET() {
 
     const raw = await res.json();
     const eth = raw.ethereum as EthMarketData;
+    const usdcRaw = raw["usd-coin"] as TokenMarketPrice;
 
-    return NextResponse.json(eth, {
+    // Dedicated reference rate for USD/INR:
+    // USDC trades at $1.00 USD; its INR price reflects the market USD/INR valuation
+    const inrPerUsd = usdcRaw?.inr && usdcRaw.inr > 0 ? usdcRaw.inr : (eth.inr / eth.usd);
+
+    const payload: MultiAssetMarketData = {
+      ...eth,
+      ethereum: eth,
+      usdc: usdcRaw,
+      fiatReference: {
+        inrPerUsd,
+        source: "CoinGecko Spot FX / USDC Market Rate",
+        timestamp: usdcRaw?.last_updated_at ?? eth.last_updated_at,
+      },
+    };
+
+    return NextResponse.json(payload, {
       headers: {
-        // Allow the browser to cache for 55s, CDN for 60s.
         "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30",
       },
     });

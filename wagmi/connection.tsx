@@ -1,10 +1,11 @@
 'use client'
 
-import { useConnection, useDisconnect, useEnsAvatar, useEnsName, useSwitchChain, useBalance } from 'wagmi'
+import { useConnection, useDisconnect, useEnsAvatar, useEnsName, useSwitchChain } from 'wagmi'
 import { sepolia } from 'wagmi/chains'
-import { formatUnits } from 'viem'
 import Image from 'next/image'
 import { useEthPrice } from '@/app/components/eth-price-ticker'
+import { useTokenBalances } from '@/hooks/use-token-balances'
+import { SUPPORTED_TOKENS } from '@/lib/tokens'
 import { SendTransaction } from './send-transaction'
 
 export function Connection() {
@@ -16,13 +17,12 @@ export function Connection() {
   const isSepolia = chainId === sepolia.id
   const { data: ethPrice } = useEthPrice()
 
-  const { data: balance, isPending: isBalancePending, error: balanceError } = useBalance({ address, chainId })
+  const { ethFormatted, isEthLoading, usdcFormatted, isUsdcLoading } = useTokenBalances()
 
-  const formattedBalance = balance ? formatUnits(balance.value, balance.decimals) : null
-  const numericBalance = formattedBalance ? parseFloat(formattedBalance) : 0
-  const balanceInr =
-    ethPrice?.inr && !isNaN(numericBalance) && numericBalance > 0
-      ? numericBalance * ethPrice.inr
+  const numericEth = parseFloat(ethFormatted)
+  const ethBalanceInr =
+    ethPrice?.inr && !isNaN(numericEth) && numericEth > 0
+      ? numericEth * ethPrice.inr
       : null
 
   const shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : ''
@@ -30,7 +30,7 @@ export function Connection() {
   return (
     <div className="space-y-4">
       {/* Wallet info card */}
-      <div className="p-3 bg-black/30 rounded-lg border border-white/5 space-y-2">
+      <div className="p-3 bg-black/30 rounded-lg border border-white/5 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {ensAvatar ? (
@@ -46,7 +46,7 @@ export function Connection() {
                 <span className="text-xs font-mono font-medium text-white">{ensName || shortAddress}</span>
               </div>
               <div className="text-[10px] text-gray-400">
-                {isSepolia ? 'Ethereum Sepolia' : `Chain ID: ${chainId ?? 'Unknown'}`}
+                {isSepolia ? 'Ethereum Sepolia (Testnet)' : `Chain ID: ${chainId ?? 'Unknown'}`}
               </div>
             </div>
           </div>
@@ -60,27 +60,50 @@ export function Connection() {
           </button>
         </div>
 
-        {/* Balance Display with INR conversion */}
-        <div className="pt-2 border-t border-white/5 flex items-baseline justify-between">
-          <span className="text-xs text-gray-400">Balance:</span>
-          <div className="text-right">
-            {isBalancePending ? (
-              <span className="text-xs text-gray-400">Loading...</span>
-            ) : balanceError ? (
-              <span className="text-xs text-rose-400">Error loading balance</span>
-            ) : balance ? (
-              <div>
-                <span className="text-xs font-mono font-semibold text-white">
-                  {parseFloat(formattedBalance!).toFixed(4)} {balance.symbol}
-                </span>
-                {balanceInr !== null && (
-                  <span className="block text-[11px] text-gray-400">
-                    ≈ ₹{balanceInr.toLocaleString('en-IN', { maximumFractionDigits: 2 })} INR
-                  </span>
-                )}
+        {/* Multi-Asset Balances Grid */}
+        <div className="pt-2 border-t border-white/5 grid grid-cols-2 gap-2 text-xs">
+          {/* Sepolia ETH Balance */}
+          <div className="p-2 rounded bg-white/5 border border-white/5">
+            <div className="flex items-center justify-between text-gray-400 text-[10px] mb-0.5">
+              <span>Native ETH (Gas)</span>
+              <span>Ξ</span>
+            </div>
+            <div className="font-mono font-semibold text-white text-xs">
+              {isEthLoading ? <span className="animate-pulse text-gray-500">...</span> : `${ethFormatted} ETH`}
+            </div>
+            {ethBalanceInr !== null && (
+              <div className="text-[10px] text-gray-500">
+                ≈ ₹{ethBalanceInr.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
               </div>
-            ) : null}
+            )}
           </div>
+
+          {/* Circle USDC Balance */}
+          <div className="p-2 rounded bg-white/5 border border-white/5">
+            <div className="flex items-center justify-between text-gray-400 text-[10px] mb-0.5">
+              <span>Circle USDC</span>
+              <span className="text-blue-400 font-bold">$</span>
+            </div>
+            <div className="font-mono font-semibold text-emerald-400 text-xs">
+              {isUsdcLoading ? <span className="animate-pulse text-gray-500">...</span> : `${parseFloat(usdcFormatted).toFixed(2)} USDC`}
+            </div>
+            <div className="text-[10px] text-gray-500">
+              6 Decimals · ERC-20
+            </div>
+          </div>
+        </div>
+
+        {/* Circle Faucet Quick-link */}
+        <div className="flex items-center justify-between text-[11px] text-gray-400 pt-1 border-t border-white/5">
+          <span>Need testnet tokens?</span>
+          <a
+            href={SUPPORTED_TOKENS.USDC.faucetUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-blue-400 hover:text-blue-300 underline"
+          >
+            Circle Faucet ↗
+          </a>
         </div>
       </div>
 
@@ -102,11 +125,11 @@ export function Connection() {
         </div>
       )}
 
-      {/* Send Transaction Section */}
+      {/* Direct Send Transaction Section */}
       {isSepolia && (
         <div className="pt-2 border-t border-white/10">
           <h4 className="text-xs font-semibold text-white mb-2 flex items-center justify-between">
-            <span>Send Sepolia ETH</span>
+            <span>Direct Transfer (USDC / ETH)</span>
             <span className="text-[10px] text-emerald-400 font-normal">Ready</span>
           </h4>
           <SendTransaction />

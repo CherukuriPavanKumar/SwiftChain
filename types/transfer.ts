@@ -1,26 +1,30 @@
 export type TransferStatus =
-    | "draft"   
-    | "awaiting signature"
-    | "pending"
-    | "confirmed"
-    | "rejected"
-    | "failed";
-
+  | "draft"   
+  | "awaiting signature"
+  | "pending"
+  | "confirmed"
+  | "rejected"
+  | "failed";
 
 export interface Transfer {
-    id: string;
+  id: string;
 
-    senderAddress: `0x${string}`;
-    recipientAddress: `0x${string}`;
+  senderAddress: `0x${string}`;
+  recipientAddress: `0x${string}`;
 
-    amount: string;
-    chainId: string;
-    assetSymbol: string;
+  amount: string;
+  chainId: string;
+  assetSymbol: string;
+  tokenAddress?: `0x${string}` | null;
 
-    status: TransferStatus;
+  status: TransferStatus;
 
-    transactionHash?: `0x${string}`;
+  transactionHash?: `0x${string}`;
 
-    createdAt: number;
-    confirmedAt?: number;
+  isSimulatedPayout?: boolean;
+  payoutStatus?: string;
+  payoutCompletedAt?: number;
+
+  createdAt: number;
+  confirmedAt?: number;
 }
