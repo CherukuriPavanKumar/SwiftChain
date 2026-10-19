@@ -6,7 +6,6 @@ import { useConnection, WagmiProvider } from 'wagmi'
 import { config } from '../config'
 import { Connection } from './connection'
 import { WalletOptions } from './wallet-options'
-import { SendTransaction } from './send-transaction'
 
 export function ConnectWallet() {
   const { isConnected } = useConnection()
@@ -20,7 +19,6 @@ export function WebProvider({ children }: { children: ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <SendTransaction />
         {children}
       </QueryClientProvider>
     </WagmiProvider>
