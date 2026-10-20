@@ -239,7 +239,7 @@ export async function GET(request: NextRequest) {
   const wallet = searchParams.get('wallet') || searchParams.get('address');
 
   try {
-    const result = await withRetry(() => {
+    const result = await withRetry(async () => {
       if (userId) {
         return db
           .select()
@@ -262,7 +262,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Unauthenticated visit with no connected wallet has no transactions
-      return [];
+      return Promise.resolve([]);
     });
 
     return NextResponse.json(result);
