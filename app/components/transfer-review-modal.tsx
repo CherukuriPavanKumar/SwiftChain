@@ -16,6 +16,7 @@ import { formatINR, formatUSD, formatTokenAmount } from "@/lib/quote";
 import { useTokenBalances } from "@/hooks/use-token-balances";
 import { ERC20_MINIMAL_ABI, SUPPORTED_TOKENS } from "@/lib/tokens";
 import SettlementTrackerModal from "./settlement-tracker-modal";
+import { createTransfer, updateTransfer } from "@/lib/transfer-client";
 
 interface TransferReviewModalProps {
   quote: RemittanceQuote;
@@ -99,20 +100,15 @@ export default function TransferReviewModal({
       : usdcRaw < requiredTokenUnits
     : false;
 
-  // Confirmation & Simulated Payout lifecycle
   useEffect(() => {
     if (receipt?.status === 'success' && activeTxHash) {
       // 1. Mark transfer confirmed in Neon Postgres
-      fetch('/api/transfers', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          transactionHash: activeTxHash,
-          status: 'confirmed',
-          confirmedAt: new Date().toISOString(),
-          isSimulatedPayout: true,
-          payoutStatus: 'simulated_pending',
-        }),
+      updateTransfer({
+        transactionHash: activeTxHash,
+        status: 'confirmed',
+        confirmedAt: new Date().toISOString(),
+        isSimulatedPayout: true,
+        payoutStatus: 'simulated_pending',
       })
         .then(() => queryClient.invalidateQueries({ queryKey: ['transfers'] }))
         .catch((err) => console.error('Failed to update transfer confirmed status:', err));
@@ -122,14 +118,10 @@ export default function TransferReviewModal({
       // 2. Deterministic simulated payout window (3 seconds delay to mimic local settlement)
       const timer = setTimeout(() => {
         setSimulatedPayoutComplete(true);
-        fetch('/api/transfers', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            transactionHash: activeTxHash,
-            payoutStatus: 'simulated_completed',
-            payoutCompletedAt: new Date().toISOString(),
-          }),
+        updateTransfer({
+          transactionHash: activeTxHash,
+          payoutStatus: 'simulated_completed',
+          payoutCompletedAt: new Date().toISOString(),
         })
           .then(() => queryClient.invalidateQueries({ queryKey: ['transfers'] }))
           .catch((err) => console.error('Failed to update simulated payout status:', err));
@@ -137,14 +129,10 @@ export default function TransferReviewModal({
 
       return () => clearTimeout(timer);
     } else if (receipt?.status === 'reverted' && activeTxHash) {
-      fetch('/api/transfers', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          transactionHash: activeTxHash,
-          status: 'failed',
-          payoutStatus: 'failed',
-        }),
+      updateTransfer({
+        transactionHash: activeTxHash,
+        status: 'failed',
+        payoutStatus: 'failed',
       })
         .then(() => queryClient.invalidateQueries({ queryKey: ['transfers'] }))
         .catch((err) => console.error('Failed to update transfer failed status:', err));
@@ -214,26 +202,22 @@ export default function TransferReviewModal({
       // Record pending transfer in Neon Postgres
       if (!hasLoggedPending) {
         setHasLoggedPending(true);
-        await fetch("/api/transfers", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            senderAddress: address,
-            recipientAddress: to,
-            amount: quote.destinationCryptoAmount,
-            chainId: sepolia.id,
-            assetSymbol: quote.assetSymbol,
-            tokenAddress: quote.isNative ? null : SUPPORTED_TOKENS.USDC.contractAddress,
-            inrSourceAmount: quote.sourceAmountInr.toString(),
-            referenceRate: quote.marketPriceInr.toString(),
-            estimatedDestinationUsd: quote.estimatedUsdEquivalent.toFixed(2),
-            networkFeeEth: quote.fees.estimatedNetworkFeeEth,
-            platformFeeInr: quote.fees.platformFeeInr.toString(),
-            status: "pending",
-            transactionHash: txHash,
-            isSimulatedPayout: true,
-            payoutStatus: "pending",
-          }),
+        await createTransfer({
+          senderAddress: address,
+          recipientAddress: to,
+          amount: quote.destinationCryptoAmount,
+          chainId: sepolia.id,
+          assetSymbol: quote.assetSymbol,
+          tokenAddress: quote.isNative ? null : SUPPORTED_TOKENS.USDC.contractAddress,
+          inrSourceAmount: quote.sourceAmountInr.toString(),
+          referenceRate: quote.marketPriceInr.toString(),
+          estimatedDestinationUsd: quote.estimatedUsdEquivalent.toFixed(2),
+          networkFeeEth: quote.fees.estimatedNetworkFeeEth,
+          platformFeeInr: quote.fees.platformFeeInr.toString(),
+          status: "pending",
+          transactionHash: txHash,
+          isSimulatedPayout: true,
+          payoutStatus: "pending",
         });
 
         await queryClient.invalidateQueries({ queryKey: ["transfers"] });
@@ -318,7 +302,7 @@ export default function TransferReviewModal({
 
           {/* Rate */}
           <div className="flex justify-between items-center pt-2 border-t border-white/5">
-            <span className="text-gray-400">Guaranteed Rate:</span>
+            <span className="text-gray-400" title="Spot rate locked for 60 seconds">Quote Rate (60s spot):</span>
             <span className="font-mono text-gray-200">
               1 {quote.assetSymbol} = {formatINR(quote.marketPriceInr)}
             </span>

@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useConnection } from "wagmi";
+import { fetchTransfers } from "@/lib/transfer-client";
 import { useEthPrice } from "./components/eth-price-ticker";
 import SettlementTrackerModal, { type SettlementTrackerData } from "./components/settlement-tracker-modal";
 
@@ -50,16 +52,13 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function TransferHistory() {
+  const { address } = useConnection();
   const [selectedTrackerId, setSelectedTrackerId] = useState<number | null>(null);
   const [fallbackTransfer, setFallbackTransfer] = useState<TransferRecord | null>(null);
 
   const { data: transfers, isLoading, error } = useQuery<TransferRecord[]>({
-    queryKey: ["transfers"],
-    queryFn: async () => {
-      const response = await fetch("/api/transfers");
-      if (!response.ok) throw new Error("Failed to load transfers");
-      return response.json();
-    },
+    queryKey: ["transfers", address],
+    queryFn: () => fetchTransfers(address),
     refetchInterval: (query) => {
       // Poll dynamically: every 2.5s if any transfer is active/pending, otherwise every 15s
       const data = query.state.data;
@@ -155,8 +154,12 @@ export default function TransferHistory() {
       )}
 
       {!isLoading && !error && (!transfers || transfers.length === 0) && (
-        <div className="p-6 text-center text-gray-400 text-xs bg-black/20 rounded-xl border border-white/5">
-          No transfers recorded yet. Submit a testnet transfer above to see it tracked here.
+        <div className="p-6 text-center space-y-2 bg-black/20 rounded-xl border border-white/5">
+          <p className="text-sm text-gray-300 font-medium">No transfers yet</p>
+          <p className="text-xs text-gray-500">
+            Your transfer history is private — only visible to you after signing in.
+            Submit a testnet transfer above to see it tracked here.
+          </p>
         </div>
       )}
 

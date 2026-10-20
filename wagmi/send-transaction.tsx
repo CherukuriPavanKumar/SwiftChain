@@ -15,6 +15,7 @@ import { useEthPrice } from '@/app/components/eth-price-ticker'
 import { useTokenBalances } from '@/hooks/use-token-balances'
 import { SUPPORTED_TOKENS, ERC20_MINIMAL_ABI, type SupportedAssetSymbol } from '@/lib/tokens'
 import SettlementTrackerModal from '@/app/components/settlement-tracker-modal'
+import { createTransfer, updateTransfer } from '@/lib/transfer-client'
 import type { Transfer } from '../types/transfer'
 
 export function SendTransaction() {
@@ -103,31 +104,20 @@ export function SendTransaction() {
 
   useEffect(() => {
     if (receipt?.status === 'success' && hash) {
-      fetch('/api/transfers', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          transactionHash: hash,
-          status: 'confirmed',
-          confirmedAt: new Date().toISOString(),
-          isSimulatedPayout: true,
-          payoutStatus: 'simulated_completed',
-          payoutCompletedAt: new Date().toISOString(),
-        }),
+      updateTransfer({
+        transactionHash: hash,
+        status: 'confirmed',
+        confirmedAt: new Date().toISOString(),
+        isSimulatedPayout: true,
+        payoutStatus: 'simulated_completed',
+        payoutCompletedAt: new Date().toISOString(),
       })
         .then(() => queryClient.invalidateQueries({ queryKey: ['transfers'] }))
         .catch((err) => console.error('Failed to update confirmed status:', err))
 
       refetchAll().catch(console.error)
     } else if (receipt?.status === 'reverted' && hash) {
-      fetch('/api/transfers', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          transactionHash: hash,
-          status: 'failed',
-        }),
-      })
+      updateTransfer({ transactionHash: hash, status: 'failed' })
         .then(() => queryClient.invalidateQueries({ queryKey: ['transfers'] }))
         .catch((err) => console.error('Failed to update failed status:', err))
     }
@@ -201,26 +191,20 @@ export function SendTransaction() {
         })
       }
 
-      await fetch('/api/transfers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          senderAddress: address,
-          recipientAddress: to,
-          amount,
-          chainId: Number(chainId),
-          assetSymbol: selectedAsset,
-          tokenAddress: selectedAsset === 'USDC' ? SUPPORTED_TOKENS.USDC.contractAddress : null,
-          inrSourceAmount: inrEstimate ? inrEstimate.toFixed(2) : null,
-          referenceRate: tokenRateInr.toString(),
-          estimatedDestinationUsd: selectedAsset === 'USDC' ? num.toFixed(2) : (num * (marketData?.usd ?? 2400)).toFixed(2),
-          status: 'pending',
-          transactionHash: txHash,
-          isSimulatedPayout: true,
-          payoutStatus: 'pending',
-        }),
+      await createTransfer({
+        senderAddress: address,
+        recipientAddress: to,
+        amount,
+        chainId: Number(chainId),
+        assetSymbol: selectedAsset,
+        tokenAddress: selectedAsset === 'USDC' ? SUPPORTED_TOKENS.USDC.contractAddress : null,
+        inrSourceAmount: inrEstimate ? inrEstimate.toFixed(2) : null,
+        referenceRate: tokenRateInr.toString(),
+        estimatedDestinationUsd: selectedAsset === 'USDC' ? num.toFixed(2) : (num * (marketData?.usd ?? 2400)).toFixed(2),
+        status: 'pending',
+        transactionHash: txHash,
+        isSimulatedPayout: true,
+        payoutStatus: 'pending',
       })
 
       await queryClient.invalidateQueries({ queryKey: ['transfers'] })

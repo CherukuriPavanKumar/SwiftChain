@@ -236,7 +236,7 @@ export default function InrEthCalculator() {
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-[11px] text-gray-400">
-                  <span>Guaranteed Rate:</span>
+                  <span title="Spot rate locked for 60 seconds">Quote Rate (60s spot):</span>
                   <span className="font-mono text-gray-300">
                     1 {quote.assetSymbol} = {formatINR(quote.marketPriceInr)}
                   </span>
