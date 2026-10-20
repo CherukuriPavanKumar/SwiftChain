@@ -82,18 +82,11 @@ export default function SignInPage() {
         </form>
 
         {/* Footer links */}
-        <div className="pt-4 border-t border-white/5 text-center text-xs text-gray-400 space-y-2">
-          <div>
-            Don&apos;t have an account?{' '}
-            <Link href="/auth/sign-up" className="text-emerald-400 hover:text-emerald-300 underline font-medium">
-              Create an Account
-            </Link>
-          </div>
-          <div>
-            <Link href="/" className="text-gray-500 hover:text-gray-300 transition-colors text-[11px]">
-              ← Back to SwiftChain Dashboard
-            </Link>
-          </div>
+        <div className="pt-4 border-t border-white/5 text-center text-xs text-gray-400">
+          Don&apos;t have an account?{' '}
+          <Link href="/auth/sign-up" className="text-emerald-400 hover:text-emerald-300 underline font-medium">
+            Create an Account
+          </Link>
         </div>
       </div>
     </main>

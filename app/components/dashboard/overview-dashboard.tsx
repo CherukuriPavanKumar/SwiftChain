@@ -26,7 +26,7 @@ interface OverviewDashboardProps {
 }
 
 export function OverviewDashboard({
-  userName = 'Pavan',
+  userName = 'User',
   initialTab = 'overview',
   userSession,
 }: OverviewDashboardProps) {

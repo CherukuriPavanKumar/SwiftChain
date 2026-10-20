@@ -17,7 +17,7 @@ interface HeaderProps {
 }
 
 export function Header({
-  userName = 'Pavan',
+  userName = 'User',
   activeTab = 'overview',
   onMobileOpen,
   onTabChange,

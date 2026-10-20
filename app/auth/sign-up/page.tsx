@@ -37,7 +37,7 @@ export default function SignUpPage() {
               name="name"
               type="text"
               required
-              placeholder="Pavan Kumar"
+              placeholder="Alex Morgan"
               className="w-full px-3 py-2 text-xs font-medium bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors"
             />
           </div>
@@ -96,18 +96,11 @@ export default function SignUpPage() {
         </form>
 
         {/* Footer links */}
-        <div className="pt-4 border-t border-white/5 text-center text-xs text-gray-400 space-y-2">
-          <div>
-            Already have an account?{' '}
-            <Link href="/auth/sign-in" className="text-emerald-400 hover:text-emerald-300 underline font-medium">
-              Sign In
-            </Link>
-          </div>
-          <div>
-            <Link href="/" className="text-gray-500 hover:text-gray-300 transition-colors text-[11px]">
-              ← Back to SwiftChain Dashboard
-            </Link>
-          </div>
+        <div className="pt-4 border-t border-white/5 text-center text-xs text-gray-400">
+          Already have an account?{' '}
+          <Link href="/auth/sign-in" className="text-emerald-400 hover:text-emerald-300 underline font-medium">
+            Sign In
+          </Link>
         </div>
       </div>
     </main>
