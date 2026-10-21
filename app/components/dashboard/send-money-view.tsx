@@ -340,8 +340,25 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
       pollReceiptAndConfirm({
         txHash,
         onConfirmed: () => {
+          const now = new Date().toISOString();
+          // Update the modal in-place so stages 4 & 5 flip to confirmed
+          setActiveModalTransfer((prev) =>
+            prev ? {
+              ...prev,
+              status: 'confirmed',
+              confirmedAt: now,
+              payoutStatus: 'simulated_completed',
+              payoutCompletedAt: now,
+            } : null
+          );
           queryClient.invalidateQueries({ queryKey: ['transfers'] }).catch(console.error);
           refetchAll().catch(console.error);
+        },
+        onFailed: () => {
+          setActiveModalTransfer((prev) =>
+            prev ? { ...prev, status: 'failed', payoutStatus: 'failed' } : null
+          );
+          queryClient.invalidateQueries({ queryKey: ['transfers'] }).catch(console.error);
         },
       });
 

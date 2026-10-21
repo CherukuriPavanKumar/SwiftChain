@@ -74,6 +74,10 @@ export default function TransferReviewModal({
   const [hasLoggedPending, setHasLoggedPending] = useState(false);
   const [simulatedPayoutComplete, setSimulatedPayoutComplete] = useState(false);
   const [isTrackerOpen, setIsTrackerOpen] = useState(false);
+  const [confirmedAt, setConfirmedAt] = useState<string | null>(null);
+  const [confirmedByPoller, setConfirmedByPoller] = useState(false);
+  const [failedByPoller, setFailedByPoller] = useState(false);
+  const [payoutCompletedAt, setPayoutCompletedAt] = useState<string | null>(null);
 
   // Quote countdown
   useEffect(() => {
@@ -246,8 +250,17 @@ export default function TransferReviewModal({
         pollReceiptAndConfirm({
           txHash,
           onConfirmed: () => {
+            const now = new Date().toISOString();
+            setConfirmedByPoller(true);
+            setConfirmedAt(now);
+            setSimulatedPayoutComplete(true);
+            setPayoutCompletedAt(now);
             queryClient.invalidateQueries({ queryKey: ["transfers"] }).catch(console.error);
             refetchAll().catch(console.error);
+          },
+          onFailed: () => {
+            setFailedByPoller(true);
+            queryClient.invalidateQueries({ queryKey: ["transfers"] }).catch(console.error);
           },
         });
       }
@@ -551,10 +564,11 @@ export default function TransferReviewModal({
                 referenceRate: quote.marketPriceInr.toString(),
                 estimatedDestinationUsd: quote.estimatedUsdEquivalent.toFixed(2),
                 networkFeeEth: quote.fees.estimatedNetworkFeeEth,
+                // Derive status from poller state first, then wagmi receipt as fallback
                 status:
-                  receipt?.status === 'success'
+                  confirmedByPoller || receipt?.status === 'success'
                     ? 'confirmed'
-                    : receipt?.status === 'reverted'
+                    : failedByPoller || receipt?.status === 'reverted'
                       ? 'failed'
                       : activeTxHash
                         ? 'pending'
@@ -563,14 +577,15 @@ export default function TransferReviewModal({
                           : 'draft',
                 transactionHash: activeTxHash,
                 isSimulatedPayout: true,
-                payoutStatus: simulatedPayoutComplete
-                  ? 'simulated_completed'
-                  : receipt?.status === 'success'
-                    ? 'simulated_pending'
-                    : 'pending',
-                payoutCompletedAt: simulatedPayoutComplete ? new Date().toISOString() : null,
+                payoutStatus:
+                  simulatedPayoutComplete || confirmedByPoller
+                    ? 'simulated_completed'
+                    : receipt?.status === 'success'
+                      ? 'simulated_pending'
+                      : 'pending',
+                payoutCompletedAt: payoutCompletedAt ?? (simulatedPayoutComplete ? new Date().toISOString() : null),
                 createdAt: quote.quoteCreatedAt,
-                confirmedAt: receipt?.status === 'success' ? new Date().toISOString() : null,
+                confirmedAt: confirmedAt ?? (receipt?.status === 'success' ? new Date().toISOString() : null),
               }
             : null
         }
