@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth/server';
-import { redirect } from 'next/navigation';
 import { OverviewDashboard } from './components/dashboard/overview-dashboard';
+import LandingClient from './landing/landing-client';
 
 // Must be dynamic so auth.getSession() fires on every request
 export const dynamic = 'force-dynamic';
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export default async function Home() {
   const { data: session } = await auth.getSession();
   if (!session?.user) {
-    redirect('/auth/sign-in');
+    return <LandingClient />;
   }
   const user = session.user;
 
