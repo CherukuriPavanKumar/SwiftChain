@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { encodeFunctionData, formatEther, isAddress } from "viem";
 import { sepolia } from "wagmi/chains";
+import { getSepoliaGasAndFees } from "@/lib/tx-helper";
 import {
   useConnection,
   useSendTransaction,
@@ -184,36 +185,40 @@ export default function TransferReviewModal({
 
       if (quote.isNative) {
         // Native ETH Transfer
+        const feeParams = await getSepoliaGasAndFees({
+          account: address,
+          to,
+          value: quote.destinationCryptoUnits,
+          isErc20: false,
+        });
         txHash = await sendTransactionAsync({
           to,
           value: quote.destinationCryptoUnits,
+          gas: feeParams.gas,
+          maxFeePerGas: feeParams.maxFeePerGas,
+          maxPriorityFeePerGas: feeParams.maxPriorityFeePerGas,
         });
       } else {
         // Circle USDC (ERC-20 transfer)
         const usdcAddress = SUPPORTED_TOKENS.USDC.contractAddress!;
-        try {
-          txHash = await writeContractAsync({
-            address: usdcAddress,
-            abi: ERC20_MINIMAL_ABI,
-            functionName: 'transfer',
-            args: [to, quote.destinationCryptoUnits],
-          });
-        } catch (contractErr: unknown) {
-          const errStr = contractErr instanceof Error ? contractErr.message : String(contractErr);
-          if (errStr.includes('User rejected') || errStr.includes('user rejected')) {
-            throw contractErr;
-          }
-          // Direct fallback to sendTransaction with encoded calldata if simulation/RPC fails
-          const data = encodeFunctionData({
-            abi: ERC20_MINIMAL_ABI,
-            functionName: 'transfer',
-            args: [to, quote.destinationCryptoUnits],
-          });
-          txHash = await sendTransactionAsync({
-            to: usdcAddress,
-            data,
-          });
-        }
+        const data = encodeFunctionData({
+          abi: ERC20_MINIMAL_ABI,
+          functionName: 'transfer',
+          args: [to, quote.destinationCryptoUnits],
+        });
+        const feeParams = await getSepoliaGasAndFees({
+          account: address,
+          to: usdcAddress,
+          data,
+          isErc20: true,
+        });
+        txHash = await sendTransactionAsync({
+          to: usdcAddress,
+          data,
+          gas: feeParams.gas,
+          maxFeePerGas: feeParams.maxFeePerGas,
+          maxPriorityFeePerGas: feeParams.maxPriorityFeePerGas,
+        });
       }
 
       // Record pending transfer in Neon Postgres
