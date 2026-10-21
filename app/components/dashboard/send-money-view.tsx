@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { formatEther, isAddress, parseEther, parseUnits } from 'viem';
+import { encodeFunctionData, formatEther, isAddress, parseEther, parseUnits } from 'viem';
 import { sepolia } from 'wagmi/chains';
 import {
   useConnection,
@@ -283,12 +283,29 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
       } else {
         const units = parseUnits(amount, SUPPORTED_TOKENS.USDC.decimals);
         const usdcAddress = SUPPORTED_TOKENS.USDC.contractAddress!;
-        txHash = await writeContractAsync({
-          address: usdcAddress,
-          abi: ERC20_MINIMAL_ABI,
-          functionName: 'transfer',
-          args: [to, units],
-        });
+        try {
+          txHash = await writeContractAsync({
+            address: usdcAddress,
+            abi: ERC20_MINIMAL_ABI,
+            functionName: 'transfer',
+            args: [to, units],
+          });
+        } catch (contractErr: unknown) {
+          const errStr = contractErr instanceof Error ? contractErr.message : String(contractErr);
+          if (errStr.includes('User rejected') || errStr.includes('user rejected')) {
+            throw contractErr;
+          }
+          // If contract simulation/RPC failed, directly broadcast transaction with encoded calldata
+          const data = encodeFunctionData({
+            abi: ERC20_MINIMAL_ABI,
+            functionName: 'transfer',
+            args: [to, units],
+          });
+          txHash = await sendTransactionAsync({
+            to: usdcAddress,
+            data,
+          });
+        }
       }
 
       // Record pending transfer in Neon Postgres
@@ -332,6 +349,15 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
       const msg = err instanceof Error ? err.message : 'Transaction was rejected or failed.';
       if (msg.includes('User rejected') || msg.includes('user rejected')) {
         setValidationError('Transaction was cancelled in your wallet.');
+      } else if (
+        msg.includes('too many errors') ||
+        msg.includes('Requested resource not available') ||
+        msg.includes('0xaa36a7') ||
+        msg.includes('Infura')
+      ) {
+        setValidationError(
+          'MetaMask’s default Infura RPC is rate-limiting Sepolia requests. In MetaMask, go to Settings → Networks → Sepolia and change the RPC URL to https://11155111.rpc.thirdweb.com'
+        );
       } else {
         setValidationError(msg);
       }

@@ -1,4 +1,4 @@
-import { http, createConfig } from 'wagmi'
+import { http, createConfig, fallback } from 'wagmi'
 import { base, mainnet, sepolia } from 'wagmi/chains'
 import { injected, safe, walletConnect } from 'wagmi/connectors'
 
@@ -16,6 +16,10 @@ export const config = createConfig({
   transports: {
     [mainnet.id]: http(),
     [base.id]: http(),
-    [sepolia.id]: http(),
+    [sepolia.id]: fallback([
+      http('https://11155111.rpc.thirdweb.com'),
+      http('https://gateway.tenderly.co/public/sepolia'),
+      http(),
+    ]),
   },
 })
