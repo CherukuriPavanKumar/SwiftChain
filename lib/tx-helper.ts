@@ -13,14 +13,19 @@ export const sepoliaPublicClient = createPublicClient({
 
 export interface GasFeeParams {
   gas?: bigint;
-  maxFeePerGas?: bigint;
-  maxPriorityFeePerGas?: bigint;
+  // Legacy type-0 gas price (avoids EIP-1559 "not supported" errors from MetaMask)
+  gasPrice?: bigint;
 }
 
 /**
- * Pre-computes gas limit and EIP-1559 fee parameters using our resilient RPC pool.
- * This ensures neither Viem nor MetaMask needs to query rate-limited default RPCs
- * (like Infura on Sepolia) for eth_getBlockByNumber or eth_estimateGas.
+ * Pre-computes gas limit and a legacy gasPrice using our resilient RPC pool.
+ *
+ * We intentionally use the legacy gasPrice approach (type-0 tx) rather than
+ * EIP-1559 maxFeePerGas/maxPriorityFeePerGas because:
+ * 1. Some Sepolia RPC endpoints return unrealistically tiny EIP-1559 fee values
+ *    that MetaMask rejects with "network does not support EIP-1559".
+ * 2. Legacy gasPrice is simpler and avoids eth_getBlockByNumber calls that
+ *    Infura rate-limits on Sepolia.
  */
 export async function getSepoliaGasAndFees(params: {
   account: `0x${string}`;
@@ -29,9 +34,12 @@ export async function getSepoliaGasAndFees(params: {
   data?: `0x${string}`;
   isErc20?: boolean;
 }): Promise<GasFeeParams> {
+  // Minimum floor: 1.5 gwei for gas price on Sepolia
+  const FLOOR_GAS_PRICE = BigInt(1_500_000_000);
+
   try {
-    const [fees, gasEst] = await Promise.all([
-      sepoliaPublicClient.estimateFeesPerGas().catch(() => null),
+    const [gasPriceResult, gasEst] = await Promise.all([
+      sepoliaPublicClient.getGasPrice().catch(() => null),
       sepoliaPublicClient
         .estimateGas({
           account: params.account,
@@ -42,30 +50,25 @@ export async function getSepoliaGasAndFees(params: {
         .catch(() => null),
     ]);
 
-    // Use estimated gas with a 25% safety margin, or a sensible fallback
+    // Apply a 25% safety buffer to gas estimate, fallback to standard units
     const fallbackGas = params.isErc20 ? BigInt(65000) : BigInt(21000);
     const gas = gasEst ? (gasEst * BigInt(125)) / BigInt(100) : fallbackGas;
 
-    // Default 1.5 gwei priority and 3 gwei max fee if RPC fee estimate fails
-    const defaultPriority = BigInt(1500000000);
-    const defaultMaxFee = BigInt(3000000000);
+    // Apply a 20% buffer to gas price, enforce minimum floor
+    let gasPrice = gasPriceResult
+      ? (gasPriceResult * BigInt(120)) / BigInt(100)
+      : FLOOR_GAS_PRICE;
 
-    const maxPriorityFeePerGas = fees?.maxPriorityFeePerGas ?? defaultPriority;
-    const maxFeePerGas = fees?.maxFeePerGas
-      ? (fees.maxFeePerGas * BigInt(130)) / BigInt(100)
-      : defaultMaxFee;
+    if (gasPrice < FLOOR_GAS_PRICE) {
+      gasPrice = FLOOR_GAS_PRICE;
+    }
 
-    return {
-      gas,
-      maxFeePerGas,
-      maxPriorityFeePerGas,
-    };
+    return { gas, gasPrice };
   } catch (err) {
     console.warn('Using default gas parameters for Sepolia transfer:', err);
     return {
       gas: params.isErc20 ? BigInt(65000) : BigInt(21000),
-      maxFeePerGas: BigInt(3000000000),
-      maxPriorityFeePerGas: BigInt(1500000000),
+      gasPrice: FLOOR_GAS_PRICE,
     };
   }
 }

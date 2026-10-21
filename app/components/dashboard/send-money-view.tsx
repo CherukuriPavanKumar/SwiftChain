@@ -290,8 +290,7 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
           to,
           value,
           gas: feeParams.gas,
-          maxFeePerGas: feeParams.maxFeePerGas,
-          maxPriorityFeePerGas: feeParams.maxPriorityFeePerGas,
+          gasPrice: feeParams.gasPrice,
         });
       } else {
         const units = parseUnits(amount, SUPPORTED_TOKENS.USDC.decimals);
@@ -311,8 +310,7 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
           to: usdcAddress,
           data,
           gas: feeParams.gas,
-          maxFeePerGas: feeParams.maxFeePerGas,
-          maxPriorityFeePerGas: feeParams.maxPriorityFeePerGas,
+          gasPrice: feeParams.gasPrice,
         });
       }
 

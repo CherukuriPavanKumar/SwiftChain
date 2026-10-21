@@ -195,8 +195,7 @@ export default function TransferReviewModal({
           to,
           value: quote.destinationCryptoUnits,
           gas: feeParams.gas,
-          maxFeePerGas: feeParams.maxFeePerGas,
-          maxPriorityFeePerGas: feeParams.maxPriorityFeePerGas,
+          gasPrice: feeParams.gasPrice,
         });
       } else {
         // Circle USDC (ERC-20 transfer)
@@ -216,8 +215,7 @@ export default function TransferReviewModal({
           to: usdcAddress,
           data,
           gas: feeParams.gas,
-          maxFeePerGas: feeParams.maxFeePerGas,
-          maxPriorityFeePerGas: feeParams.maxPriorityFeePerGas,
+          gasPrice: feeParams.gasPrice,
         });
       }
 
