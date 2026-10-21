@@ -1,4 +1,5 @@
 import { createPublicClient, http, fallback } from 'viem';
+import { updateTransfer } from '@/lib/transfer-client';
 import { sepolia } from 'viem/chains';
 
 // Public client backed by fast, resilient non-Infura public RPCs
@@ -71,4 +72,48 @@ export async function getSepoliaGasAndFees(params: {
       gasPrice: FLOOR_GAS_PRICE,
     };
   }
+}
+
+/**
+ * After a transaction is submitted, polls for receipt using our resilient RPC pool
+ * (not Infura) and updates the transfer status in the DB once confirmed.
+ *
+ * This is needed because wagmi's useWaitForTransactionReceipt uses the wallet's
+ * internal RPC (Infura on Sepolia), which gets rate-limited and never resolves.
+ */
+export function pollReceiptAndConfirm(params: {
+  txHash: `0x${string}`;
+  onConfirmed?: () => void;
+  onFailed?: () => void;
+}): void {
+  // Fire-and-forget — runs in background without blocking UI
+  sepoliaPublicClient
+    .waitForTransactionReceipt({
+      hash: params.txHash,
+      timeout: 120_000, // 2 min max wait
+      pollingInterval: 3_000, // poll every 3 seconds
+    })
+    .then((receipt) => {
+      if (receipt.status === 'success') {
+        updateTransfer({
+          transactionHash: params.txHash,
+          status: 'confirmed',
+          confirmedAt: new Date().toISOString(),
+          isSimulatedPayout: true,
+          payoutStatus: 'simulated_completed',
+          payoutCompletedAt: new Date().toISOString(),
+        }).catch(console.error);
+        params.onConfirmed?.();
+      } else {
+        updateTransfer({
+          transactionHash: params.txHash,
+          status: 'failed',
+          payoutStatus: 'failed',
+        }).catch(console.error);
+        params.onFailed?.();
+      }
+    })
+    .catch((err) => {
+      console.warn('pollReceiptAndConfirm: receipt polling timed out or failed', err);
+    });
 }

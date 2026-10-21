@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { encodeFunctionData, formatEther, isAddress } from "viem";
 import { sepolia } from "wagmi/chains";
-import { getSepoliaGasAndFees } from "@/lib/tx-helper";
+import { getSepoliaGasAndFees, pollReceiptAndConfirm } from "@/lib/tx-helper";
 import {
   useConnection,
   useSendTransaction,
@@ -241,6 +241,15 @@ export default function TransferReviewModal({
         });
 
         await queryClient.invalidateQueries({ queryKey: ["transfers"] });
+
+        // Independently poll for confirmation via our resilient RPC (not Infura/wagmi)
+        pollReceiptAndConfirm({
+          txHash,
+          onConfirmed: () => {
+            queryClient.invalidateQueries({ queryKey: ["transfers"] }).catch(console.error);
+            refetchAll().catch(console.error);
+          },
+        });
       }
     } catch (err: unknown) {
       console.error("Transfer execution failed:", err);
