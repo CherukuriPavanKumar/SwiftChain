@@ -5,5 +5,5 @@ import { redirect } from 'next/navigation';
 
 export async function signOut() {
   await auth.signOut();
-  redirect('/auth/sign-in');
+  redirect('/');
 }

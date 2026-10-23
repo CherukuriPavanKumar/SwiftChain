@@ -1,18 +1,9 @@
-import type { Metadata } from 'next';
-import LandingClient from './landing-client';
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = {
-  title: 'SwiftChain — Global Payments, Reimagined',
-  description:
-    'SwiftChain is a blockchain-powered remittance prototype exploring a simpler, more transparent way to move money across borders using stablecoins, with transparent quotes and on-chain transaction visibility.',
-  openGraph: {
-    title: 'SwiftChain — Global Payments, Reimagined',
-    description:
-      'Explore a simpler way to move money across borders using stablecoins and on-chain transaction visibility.',
-    type: 'website',
-  },
-};
-
+/**
+ * /landing — Canonical landing page is now served directly at "/".
+ * proxy.ts redirects to "/" or "/app", and this redirect ensures fallback safety.
+ */
 export default function LandingPage() {
-  return <LandingClient />;
+  redirect('/');
 }

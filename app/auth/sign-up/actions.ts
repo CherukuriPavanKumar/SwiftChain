@@ -29,5 +29,5 @@ export async function signUpWithEmail(
     return { error: error.message || 'Failed to create account' };
   }
 
-  redirect('/');
+  redirect('/app');
 }

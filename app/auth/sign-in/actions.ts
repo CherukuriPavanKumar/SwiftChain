@@ -27,5 +27,5 @@ export async function signInWithEmail(
     return { error: error.message || 'Failed to sign in. Please check your credentials.' };
   }
 
-  redirect('/');
+  redirect('/app');
 }

@@ -175,9 +175,17 @@ export default function LandingClient() {
               Sepolia Testnet
             </div>
 
+            {/* Sign In link */}
+            <Link
+              href="/auth/sign-in"
+              className="text-sm font-medium text-[#91AAA0] hover:text-[#F4F1E8] transition-colors px-2 py-1"
+            >
+              Sign In
+            </Link>
+
             {/* Launch App Primary Button */}
             <Link
-              href="/send"
+              href="/app"
               className="flex items-center gap-1.5 px-4.5 py-2 rounded-xl bg-[#8BE3BB] text-[#071410] text-sm font-semibold hover:bg-[#a1ecd0] active:scale-[0.98] transition-all shadow-[0_2px_12px_rgba(139,227,187,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8BE3BB]"
             >
               Launch App <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -187,7 +195,7 @@ export default function LandingClient() {
           {/* Mobile Right Controls */}
           <div className="flex md:hidden items-center gap-2">
             <Link
-              href="/send"
+              href="/app"
               className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#8BE3BB] text-[#071410] text-xs font-semibold"
             >
               Launch App
@@ -243,7 +251,13 @@ export default function LandingClient() {
                 Sepolia Testnet Prototype
               </div>
               <Link
-                href="/send"
+                href="/auth/sign-in"
+                className="flex items-center justify-center w-full py-2.5 rounded-xl border border-[#294438] text-sm font-medium text-[#F4F1E8] hover:bg-[#183126] transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/app"
                 className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl bg-[#8BE3BB] text-[#071410] text-sm font-semibold shadow-md"
               >
                 Launch App <ArrowRight className="w-4 h-4 stroke-[2.5]" />
@@ -274,7 +288,7 @@ export default function LandingClient() {
         {/* Centered CTAs */}
         <div className="flex flex-wrap items-center justify-center gap-4 mb-10">
           <Link
-            href="/send"
+            href="/app"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#8BE3BB] text-[#071410] text-sm sm:text-base font-semibold hover:bg-[#a1ecd0] active:scale-[0.98] transition-all shadow-[0_2px_16px_rgba(139,227,187,0.25)]"
           >
             Launch App <ArrowRight className="w-4 h-4 stroke-[2.5]" />
@@ -455,7 +469,7 @@ export default function LandingClient() {
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
             <Link
-              href="/send"
+              href="/app"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#8BE3BB] text-[#071410] text-sm sm:text-base font-semibold hover:bg-[#a1ecd0] active:scale-[0.98] transition-all shadow-[0_2px_16px_rgba(139,227,187,0.25)]"
             >
               Launch App <ArrowRight className="w-4 h-4 stroke-[2.5]" />

@@ -1,24 +1,18 @@
-import { auth } from '@/lib/auth/server';
-import { OverviewDashboard } from './components/dashboard/overview-dashboard';
+import type { Metadata } from 'next';
 import LandingClient from './landing/landing-client';
 
-// Must be dynamic so auth.getSession() fires on every request
-export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  title: 'SwiftChain — Global Payments, Reimagined',
+  description:
+    'SwiftChain is a blockchain-powered remittance prototype exploring a simpler, more transparent way to move money across borders using stablecoins, with transparent quotes and on-chain transaction visibility.',
+};
 
-export default async function Home() {
-  const { data: session } = await auth.getSession();
-  if (!session?.user) {
-    return <LandingClient />;
-  }
-  const user = session.user;
-
-  // Derive human-readable name from real user
-  const rawName = user.name
-    ? user.name.split(' ')[0]
-    : user.email
-    ? user.email.split('@')[0]
-    : 'User';
-  const userName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-
-  return <OverviewDashboard userName={userName} userSession={user} />;
+/**
+ * Root route — always serves the public landing page.
+ * Auth-aware routing is handled in proxy.ts:
+ *   - Authenticated users visiting "/" are redirected to "/app"
+ *   - Unauthenticated users visiting "/app/*" are redirected to "/"
+ */
+export default function Home() {
+  return <LandingClient />;
 }
