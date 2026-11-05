@@ -25,7 +25,14 @@ export default async function AppPage({
 }: {
   searchParams?: Promise<{ tab?: string }>;
 }) {
-  const { data: session } = await auth.getSession();
+  let session = null;
+  try {
+    const res = await auth.getSession();
+    session = res?.data ?? null;
+  } catch (err) {
+    console.error('Error fetching auth session:', err);
+  }
+
   if (!session?.user) {
     redirect('/auth/sign-in');
   }

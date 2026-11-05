@@ -266,20 +266,27 @@ export default function TransferReviewModal({
       }
     } catch (err: unknown) {
       console.error("Transfer execution failed:", err);
-      const msg = err instanceof Error ? err.message : "Transaction rejected or failed.";
-      if (msg.includes('User rejected') || msg.includes('user rejected')) {
+      const fullMsg = [
+        err instanceof Error ? err.message : '',
+        (err as any)?.details || '',
+        (err as any)?.shortMessage || '',
+        (err as any)?.cause?.message || '',
+      ].join(' ');
+
+      if (fullMsg.includes('User rejected') || fullMsg.includes('user rejected')) {
         setErrorMessage('Transaction was cancelled in your wallet.');
       } else if (
-        msg.includes('too many errors') ||
-        msg.includes('Requested resource not available') ||
-        msg.includes('0xaa36a7') ||
-        msg.includes('Infura')
+        fullMsg.includes('too many errors') ||
+        fullMsg.includes('different RPC endpoint') ||
+        fullMsg.includes('Requested resource not available') ||
+        fullMsg.includes('0xaa36a7') ||
+        fullMsg.includes('Infura')
       ) {
         setErrorMessage(
           'MetaMask’s default Infura RPC is rate-limiting Sepolia requests. In MetaMask, go to Settings → Networks → Sepolia and change the RPC URL to https://11155111.rpc.thirdweb.com'
         );
       } else {
-        setErrorMessage(msg);
+        setErrorMessage(err instanceof Error ? err.message : "Transaction rejected or failed.");
       }
     }
   }

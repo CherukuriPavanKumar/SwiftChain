@@ -25,7 +25,7 @@ import {
   ArrowDown,
   BookUser,
   AlertCircle,
-  ExternalLink,
+  User,
 } from 'lucide-react';
 import { EthereumIcon, UsdcIcon } from './token-icons';
 import { useTokenBalances } from '@/hooks/use-token-balances';
@@ -61,7 +61,30 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [copiedRpc, setCopiedRpc] = useState(false);
   const [activeModalTransfer, setActiveModalTransfer] = useState<SettlementTrackerData | null>(null);
+
+  async function handleSwitchMetaMaskRpc() {
+    if (typeof window !== 'undefined' && (window as any).ethereum) {
+      try {
+        await (window as any).ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [
+            {
+              chainId: '0xaa36a7',
+              chainName: 'Sepolia (Thirdweb)',
+              nativeCurrency: { name: 'Sepolia ETH', symbol: 'ETH', decimals: 18 },
+              rpcUrls: ['https://11155111.rpc.thirdweb.com', 'https://gateway.tenderly.co/public/sepolia'],
+              blockExplorerUrls: ['https://sepolia.etherscan.io'],
+            },
+          ],
+        });
+        setValidationError(null);
+      } catch (e: any) {
+        console.error('Failed to update RPC in wallet:', e);
+      }
+    }
+  }
 
   useEffect(() => {
     if (initialAsset) {
@@ -186,12 +209,12 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
 
   // Calculate formatted gas estimate
   const formattedGasEstimate = useMemo(() => {
-    if (isEstimatingGas) return 'Estimating...';
+    if (isEstimatingGas) return 'Estimating\u2026';
     if (gasEstimate && gasPriceWei) {
       const totalGasWei = gasEstimate * gasPriceWei;
       const ethVal = parseFloat(formatEther(totalGasWei));
       const inrVal = ethVal * (marketData?.inr ?? 230000);
-      return `${ethVal.toFixed(5)} ETH (≈ ₹${inrVal.toFixed(2)})`;
+      return `${ethVal.toFixed(5)} ETH (\u2248 \u20b9${inrVal.toFixed(2)})`;
     }
     if (gasPriceWei) {
       const standardUnits =
@@ -199,7 +222,7 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
       const totalGasWei = standardUnits * gasPriceWei;
       const ethVal = parseFloat(formatEther(totalGasWei));
       const inrVal = ethVal * (marketData?.inr ?? 230000);
-      return `~${ethVal.toFixed(5)} ETH (≈ ₹${inrVal.toFixed(2)})`;
+      return `~${ethVal.toFixed(5)} ETH (\u2248 \u20b9${inrVal.toFixed(2)})`;
     }
     return '--';
   }, [gasEstimate, gasPriceWei, isEstimatingGas, marketData, selectedAsset]);
@@ -237,7 +260,7 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
     }
 
     if (!isAddress(recipient.trim())) {
-      setValidationError('Invalid Ethereum address. Must be a 42-character 0x... hex address.');
+      setValidationError('Invalid Ethereum address. Must be a 42-character 0x\u2026 hex address.');
       return false;
     }
 
@@ -378,20 +401,27 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
       });
     } catch (err: unknown) {
       console.error('Transfer execution failed:', err);
-      const msg = err instanceof Error ? err.message : 'Transaction was rejected or failed.';
-      if (msg.includes('User rejected') || msg.includes('user rejected')) {
+      const fullMsg = [
+        err instanceof Error ? err.message : '',
+        (err as any)?.details || '',
+        (err as any)?.shortMessage || '',
+        (err as any)?.cause?.message || '',
+      ].join(' ');
+
+      if (fullMsg.includes('User rejected') || fullMsg.includes('user rejected')) {
         setValidationError('Transaction was cancelled in your wallet.');
       } else if (
-        msg.includes('too many errors') ||
-        msg.includes('Requested resource not available') ||
-        msg.includes('0xaa36a7') ||
-        msg.includes('Infura')
+        fullMsg.includes('too many errors') ||
+        fullMsg.includes('different RPC endpoint') ||
+        fullMsg.includes('Requested resource not available') ||
+        fullMsg.includes('0xaa36a7') ||
+        fullMsg.includes('Infura')
       ) {
         setValidationError(
-          'MetaMask’s default Infura RPC is rate-limiting Sepolia requests. In MetaMask, go to Settings → Networks → Sepolia and change the RPC URL to https://11155111.rpc.thirdweb.com'
+          "MetaMask’s default Infura RPC is rate-limiting Sepolia requests. Switch your RPC to Thirdweb or Publicnode."
         );
       } else {
-        setValidationError(msg);
+        setValidationError(err instanceof Error ? err.message : 'Transaction was rejected or failed.');
       }
     }
   }
@@ -404,26 +434,56 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
       !isSending
   );
 
+  /* Shared class tokens */
+  const cardCls = 'rounded-xl bg-[#0d1e17] border border-[#233a30] p-5 space-y-4';
+  const inputWrapCls = 'flex items-center gap-3 px-3.5 py-3 rounded-lg bg-[#071410] border border-[#233a30] focus-within:border-[#8BE3BB]/50 transition-colors duration-150';
+  const stepBadgeCls = 'w-6 h-6 rounded-full bg-[#152920] border border-[#233a30] text-[#8BE3BB] flex items-center justify-center font-bold text-xs shrink-0 tabular-nums';
+
   return (
     <div className="pt-6 animate-in fade-in duration-150">
       {/* Main 2-Column Responsive Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: 3-Step Guided Transfer Form (approx 62% width) */}
-        <div className="lg:col-span-7 space-y-5">
+        {/* Left Column: 3-Step Guided Transfer Form */}
+        <div className="lg:col-span-7 space-y-4">
+
           {/* Validation Notice Banner */}
           {validationError && (
             <div
-              className="p-3.5 rounded-xl bg-[#FF8585]/10 border border-[#FF8585]/30 text-xs text-[#FF8585] flex items-center gap-2.5 animate-in fade-in"
+              className="p-3.5 rounded-lg bg-[#FF8585]/[0.08] border border-[#FF8585]/25 text-xs text-[#FF8585] space-y-2.5"
               role="alert"
             >
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{validationError}</span>
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-px" />
+                <span className="leading-relaxed">{validationError}</span>
+              </div>
+              {validationError.includes('Infura') && (
+                <div className="flex flex-wrap items-center gap-2 pl-6 pt-0.5">
+                  <button
+                    type="button"
+                    onClick={handleSwitchMetaMaskRpc}
+                    className="px-2.5 py-1 rounded-md bg-[#152920] border border-[#233a30] text-[#8BE3BB] hover:bg-[#1e3d30] font-medium transition-colors duration-150 cursor-pointer text-xs"
+                  >
+                    Switch MetaMask RPC (1-click)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText('https://11155111.rpc.thirdweb.com');
+                      setCopiedRpc(true);
+                      setTimeout(() => setCopiedRpc(false), 2000);
+                    }}
+                    className="px-2.5 py-1 rounded-md bg-[#071410] border border-[#233a30] text-[#a6b8b0] hover:text-[#F4F1E8] font-medium transition-colors duration-150 cursor-pointer text-xs"
+                  >
+                    {copiedRpc ? 'Copied URL!' : 'Copy Thirdweb RPC'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
           {/* Network Warning Banner */}
           {isConnected && !isSepolia && (
-            <div className="p-3.5 rounded-xl bg-[#F2C66D]/10 border border-[#F2C66D]/30 text-xs text-[#F2C66D] flex items-center justify-between gap-3">
+            <div className="p-3 rounded-lg bg-[#F2C66D]/[0.08] border border-[#F2C66D]/25 text-xs text-[#F2C66D] flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>You are connected to an unsupported network.</span>
@@ -432,30 +492,28 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
                 type="button"
                 onClick={() => switchChain({ chainId: sepolia.id })}
                 disabled={isSwitchingChain}
-                className="px-3 py-1 rounded-lg bg-[#F2C66D]/20 hover:bg-[#F2C66D]/30 text-xs font-semibold text-[#F2C66D] transition-colors"
+                className="px-3 py-1 rounded-md bg-[#F2C66D]/15 hover:bg-[#F2C66D]/25 text-xs font-semibold text-[#F2C66D] transition-colors duration-150 shrink-0"
               >
-                {isSwitchingChain ? 'Switching...' : 'Switch to Sepolia'}
+                {isSwitchingChain ? 'Switching\u2026' : 'Switch to Sepolia'}
               </button>
             </div>
           )}
 
-          {/* ================= STEP 1: RECIPIENT ================= */}
-          <div className="rounded-2xl bg-[#183126] border border-[#294438] p-5.5 space-y-4 shadow-sm">
+          {/* STEP 1: RECIPIENT */}
+          <div className={cardCls}>
             <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-full bg-[#183126] border border-[#294438] text-[#8BE3BB] flex items-center justify-center font-bold text-xs shrink-0">
-                1
-              </span>
+              <span className={stepBadgeCls}>1</span>
               <div>
                 <h3 className="text-sm font-bold text-[#F4F1E8]">Recipient</h3>
-                <p className="text-xs text-[#91AAA0]">
-                  Enter the recipient&apos;s wallet address (or ENS name).
+                <p className="text-xs text-[#7a9187] mt-0.5">
+                  Enter the wallet address or ENS name.
                 </p>
               </div>
             </div>
 
-            {/* Recipient Input Box */}
-            <div className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-[#10231B] border border-[#294438] focus-within:border-[#8BE3BB]/60 transition-colors">
-              <Wallet className="w-4 h-4 text-[#91AAA0] shrink-0" />
+            {/* Recipient Input */}
+            <div className={inputWrapCls}>
+              <Wallet className="w-4 h-4 text-[#7a9187] shrink-0" />
               <input
                 type="text"
                 value={recipient}
@@ -463,10 +521,10 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
                   setRecipient(e.target.value);
                   setValidationError(null);
                 }}
-                placeholder="0x... or name.eth"
+                placeholder="0x\u2026 or name.eth"
                 spellCheck={false}
                 autoComplete="off"
-                className="w-full bg-transparent border-none outline-none text-xs sm:text-sm font-mono text-[#F4F1E8] placeholder:text-[#91AAA0]/50"
+                className="w-full bg-transparent border-none outline-none text-xs sm:text-sm font-mono text-[#F4F1E8] placeholder:text-[#7a9187]/50"
               />
               <button
                 type="button"
@@ -477,44 +535,40 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
                   } catch {}
                 }}
                 title="Paste from clipboard"
-                className="text-[#91AAA0] hover:text-[#8BE3BB] transition-colors shrink-0"
+                className="text-[#7a9187] hover:text-[#8BE3BB] transition-colors duration-150 shrink-0"
               >
                 <BookUser className="w-4 h-4" />
               </button>
             </div>
 
             {recipient && !isValidRecipient && (
-              <p className="text-[11px] text-[#FF8585] font-mono">
-                ⚠ Please enter a valid 42-character Ethereum address (0x...)
+              <p className="text-xs text-[#FF8585] font-mono">
+                Enter a valid 42-character Ethereum address starting with 0x
               </p>
             )}
           </div>
 
-          {/* ================= STEP 2: ASSET & AMOUNT ================= */}
-          <div className="rounded-2xl bg-[#183126] border border-[#294438] p-5.5 space-y-4 shadow-sm">
+          {/* STEP 2: ASSET & AMOUNT */}
+          <div className={cardCls}>
             <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-full bg-[#183126] border border-[#294438] text-[#8BE3BB] flex items-center justify-center font-bold text-xs shrink-0">
-                2
-              </span>
+              <span className={stepBadgeCls}>2</span>
               <div>
-                <h3 className="text-sm font-bold text-[#F4F1E8]">Asset & Amount</h3>
-                <p className="text-xs text-[#91AAA0]">
-                  Select the asset you want to send and enter the amount.
+                <h3 className="text-sm font-bold text-[#F4F1E8]">Asset &amp; Amount</h3>
+                <p className="text-xs text-[#7a9187] mt-0.5">
+                  Choose an asset and enter the amount to send.
                 </p>
               </div>
             </div>
 
-            {/* Input Row: Asset selector (Left) + Amount input (Right) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {/* Input Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Asset Selector */}
-              <div className="space-y-1 relative">
-                <span className="text-[10px] uppercase font-semibold tracking-wider text-[#91AAA0]">
-                  Asset
-                </span>
+              <div className="space-y-1.5 relative">
+                <span className="text-xs text-[#7a9187]">Asset</span>
                 <button
                   type="button"
                   onClick={() => setAssetDropdownOpen((prev) => !prev)}
-                  className="w-full flex items-center justify-between p-2.5 rounded-xl bg-[#10231B] border border-[#294438] hover:border-[#8BE3BB]/40 transition-colors text-left"
+                  className="w-full flex items-center justify-between p-2.5 rounded-lg bg-[#071410] border border-[#233a30] hover:border-[#8BE3BB]/35 transition-colors duration-150 text-left"
                 >
                   <div className="flex items-center gap-2.5">
                     {selectedAsset === 'USDC' ? (
@@ -523,20 +577,20 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
                       <EthereumIcon className="w-7 h-7" />
                     )}
                     <div>
-                      <p className="text-xs font-bold text-[#F4F1E8] font-mono leading-tight">
+                      <p className="text-xs font-bold text-[#F4F1E8] font-mono leading-tight tabular-nums">
                         {selectedAsset}
                       </p>
-                      <p className="text-[11px] text-[#91AAA0]">
+                      <p className="text-xs text-[#7a9187]">
                         {selectedAsset === 'USDC' ? 'USD Coin' : 'Ethereum'}
                       </p>
                     </div>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-[#91AAA0]" />
+                  <ChevronDown className="w-4 h-4 text-[#7a9187]" />
                 </button>
 
                 {/* Asset Dropdown */}
                 {assetDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-full rounded-xl bg-[#10231B] border border-[#294438] p-1.5 shadow-xl z-20 space-y-1">
+                  <div className="absolute top-full left-0 mt-1 w-full rounded-lg bg-[#0d1e17] border border-[#233a30] p-1 shadow-lg z-20 space-y-0.5">
                     {(['ETH', 'USDC'] as SupportedAssetSymbol[]).map((sym) => (
                       <button
                         key={sym}
@@ -546,10 +600,10 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
                           setAssetDropdownOpen(false);
                           setValidationError(null);
                         }}
-                        className={`w-full flex items-center gap-2.5 p-2 rounded-lg text-left transition-colors ${
+                        className={`w-full flex items-center gap-2.5 p-2 rounded-md text-left transition-colors duration-150 ${
                           selectedAsset === sym
-                            ? 'bg-[#183126] text-[#8BE3BB]'
-                            : 'text-[#91AAA0] hover:text-[#F4F1E8] hover:bg-[#183126]/50'
+                            ? 'bg-[#152920] text-[#8BE3BB]'
+                            : 'text-[#a6b8b0] hover:text-[#F4F1E8] hover:bg-[#152920]/60'
                         }`}
                       >
                         {sym === 'USDC' ? (
@@ -558,9 +612,9 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
                           <EthereumIcon className="w-6 h-6" />
                         )}
                         <div>
-                          <p className="text-xs font-bold font-mono">{sym}</p>
-                          <p className="text-[10px] text-[#91AAA0]">
-                            {sym === 'USDC' ? 'USD Coin (ERC-20)' : 'Native Ethereum'}
+                          <p className="text-xs font-bold font-mono tabular-nums">{sym}</p>
+                          <p className="text-xs text-[#7a9187]">
+                            {sym === 'USDC' ? 'USD Coin \u00b7 ERC-20' : 'Native Ethereum'}
                           </p>
                         </div>
                       </button>
@@ -570,11 +624,9 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
               </div>
 
               {/* Amount Input */}
-              <div className="space-y-1">
-                <span className="text-[10px] uppercase font-semibold tracking-wider text-[#91AAA0]">
-                  Amount
-                </span>
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#10231B] border border-[#294438] focus-within:border-[#8BE3BB]/60 transition-colors gap-2">
+              <div className="space-y-1.5">
+                <span className="text-xs text-[#7a9187]">Amount</span>
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#071410] border border-[#233a30] focus-within:border-[#8BE3BB]/50 transition-colors duration-150 gap-2">
                   <input
                     type="text"
                     inputMode="decimal"
@@ -587,12 +639,12 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
                       }
                     }}
                     placeholder="0.0"
-                    className="w-full bg-transparent border-none outline-none text-base font-bold font-mono text-[#F4F1E8] placeholder:text-[#91AAA0]/40"
+                    className="w-full bg-transparent border-none outline-none text-base font-bold font-mono tabular-nums text-[#F4F1E8] placeholder:text-[#7a9187]/40"
                   />
                   <button
                     type="button"
                     onClick={handleMax}
-                    className="px-2.5 py-1 rounded-lg bg-[#183126] border border-[#294438] text-xs font-semibold text-[#8BE3BB] hover:bg-[#294438] transition-colors shrink-0"
+                    className="px-2.5 py-1 rounded-md bg-[#152920] border border-[#233a30] text-xs font-semibold text-[#8BE3BB] hover:bg-[#233a30] transition-colors duration-150 shrink-0"
                   >
                     Max
                   </button>
@@ -600,15 +652,15 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
               </div>
             </div>
 
-            {/* Balance Helper Line */}
-            <div className="text-xs text-[#91AAA0] pt-0.5 flex items-center justify-between flex-wrap gap-2">
+            {/* Balance helper */}
+            <div className="text-xs text-[#7a9187] flex items-center justify-between flex-wrap gap-2">
               <span>
                 Balance:{' '}
-                <span className="font-mono text-[#F4F1E8]">
+                <span className="font-mono tabular-nums text-[#a6b8b0]">
                   {selectedAsset === 'USDC' ? `${usdcFormatted} USDC` : `${ethFormatted} ETH`}
                 </span>{' '}
-                <span className="font-mono text-[#91AAA0]">
-                  (≈ ₹
+                <span className="font-mono tabular-nums">
+                  (\u2248&nbsp;\u20b9
                   {selectedAsset === 'USDC'
                     ? ((parseFloat(usdcFormatted) || 0) * (marketData?.usdc?.inr ?? 94.88)).toLocaleString('en-IN', { maximumFractionDigits: 2 })
                     : ((parseFloat(ethFormatted) || 0) * (marketData?.inr ?? 230000)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
@@ -618,71 +670,70 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
             </div>
           </div>
 
-          {/* ================= STEP 3: REVIEW & SEND ================= */}
-          <div className="rounded-2xl bg-[#183126] border border-[#294438] p-5.5 space-y-4 shadow-sm">
+          {/* STEP 3: REVIEW & SEND */}
+          <div className={cardCls}>
             <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-full bg-[#183126] border border-[#294438] text-[#8BE3BB] flex items-center justify-center font-bold text-xs shrink-0">
-                3
-              </span>
+              <span className={stepBadgeCls}>3</span>
               <div>
-                <h3 className="text-sm font-bold text-[#F4F1E8]">Review & Send</h3>
-                <p className="text-xs text-[#91AAA0]">
-                  Review the details and confirm the transaction in your wallet.
+                <h3 className="text-sm font-bold text-[#F4F1E8]">Review &amp; Send</h3>
+                <p className="text-xs text-[#7a9187] mt-0.5">
+                  Confirm the details and approve in your wallet.
                 </p>
               </div>
             </div>
 
-            {/* Info Notice Box */}
-            <div className="p-3.5 rounded-xl bg-[#10231B] border border-[#294438] flex items-start gap-3">
-              <Info className="w-4 h-4 text-[#8BE3BB] shrink-0 mt-0.5" />
+            {/* Info callout */}
+            <div className="p-3 rounded-lg bg-[#071410] border border-[#233a30] flex items-start gap-3">
+              <Info className="w-4 h-4 text-[#8BE3BB] shrink-0 mt-px" />
               <div>
                 <p className="text-xs font-semibold text-[#F4F1E8]">
                   You&apos;ll confirm this transaction in MetaMask.
                 </p>
-                <p className="text-[11px] text-[#91AAA0] mt-0.5">
+                <p className="text-xs text-[#7a9187] mt-0.5">
                   Make sure you&apos;re connected to Sepolia testnet.
                 </p>
               </div>
             </div>
 
-            {/* Primary CTA Button */}
+            {/* Primary CTA */}
             <button
               type="button"
               onClick={handleReviewClick}
               disabled={isConnected && (!isFormComplete || isSending || isConfirming)}
-              className={`w-full py-3 px-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+              className={`w-full py-3 px-4 rounded-lg text-sm font-bold transition-all duration-150 flex items-center justify-center gap-2 ${
                 !isConnected
-                  ? 'bg-[#1e3d30] hover:bg-[#254d3b] text-[#8BE3BB] border border-[#294438] shadow-sm cursor-pointer'
+                  ? 'bg-[#152920] hover:bg-[#1e3d30] text-[#8BE3BB] border border-[#233a30] cursor-pointer'
                   : isFormComplete && !isSending && !isConfirming
-                  ? 'bg-[#1e3d30] hover:bg-[#254d3b] text-[#8BE3BB] border border-[#294438] shadow-sm active:scale-[0.99] cursor-pointer'
-                  : 'bg-[#142920] text-[#91AAA0]/50 border border-[#294438]/50 cursor-not-allowed'
+                  ? 'bg-[#152920] hover:bg-[#1e3d30] text-[#8BE3BB] border border-[#233a30] active:scale-[0.99] cursor-pointer'
+                  : 'bg-[#0d1e17] text-[#7a9187]/50 border border-[#233a30]/50 cursor-not-allowed'
               }`}
             >
               {isSending ? (
-                <span>Awaiting signature in wallet...</span>
+                <span>Awaiting signature in wallet\u2026</span>
               ) : isConfirming ? (
-                <span>Confirming on Sepolia...</span>
+                <span>Confirming on Sepolia\u2026</span>
               ) : !isConnected ? (
-                <span>Connect MetaMask & Review →</span>
+                <span>Connect MetaMask &amp; review</span>
               ) : (
-                <span>Review transfer →</span>
+                <span>Review transfer</span>
               )}
             </button>
           </div>
         </div>
 
-        {/* Right Column: Transaction Summary + Important Notes (approx 38% width) */}
-        <div className="lg:col-span-5 space-y-5">
-          {/* ================= TRANSACTION SUMMARY PANEL ================= */}
-          <div className="rounded-2xl bg-[#183126] border border-[#294438] p-5.5 space-y-4 shadow-sm">
+        {/* Right Column: Summary + Notes */}
+        <div className="lg:col-span-5 space-y-4">
+
+          {/* TRANSACTION SUMMARY PANEL */}
+          <div className={cardCls}>
             <div>
-              <h3 className="text-base font-bold text-[#F4F1E8]">Transaction Summary</h3>
-              <p className="text-xs text-[#91AAA0] mt-0.5">Estimated details for this transfer.</p>
+              <h3 className="text-sm font-bold text-[#F4F1E8]">Transaction summary</h3>
+              <p className="text-xs text-[#7a9187] mt-0.5">Estimated details for this transfer.</p>
             </div>
 
-            {/* Visual Transfer Flow Diagram */}
-            <div className="rounded-xl bg-[#10231B] border border-[#294438] p-4 space-y-3.5">
-              {/* "You send" */}
+            {/* Visual Transfer Flow */}
+            <div className="rounded-lg bg-[#071410] border border-[#233a30] p-4 space-y-3">
+              {/* You send */}
               <div className="flex items-center gap-3">
                 {selectedAsset === 'USDC' ? (
                   <UsdcIcon className="w-8 h-8" />
@@ -690,120 +741,117 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
                   <EthereumIcon className="w-8 h-8" />
                 )}
                 <div>
-                  <p className="text-[11px] text-[#91AAA0]">You send</p>
-                  <p className="text-base font-bold text-[#F4F1E8] font-mono leading-tight">
+                  <p className="text-xs text-[#7a9187]">You send</p>
+                  <p className="text-base font-bold text-[#F4F1E8] font-mono tabular-nums leading-tight">
                     {amount ? `${amount} ${selectedAsset}` : `0 ${selectedAsset}`}
                   </p>
-                  <p className="text-[11px] text-[#91AAA0] font-mono">
-                    ≈ ₹{inrEstimate > 0 ? inrEstimate.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '0.00'}
+                  <p className="text-xs text-[#7a9187] font-mono tabular-nums">
+                    \u2248&nbsp;\u20b9{inrEstimate > 0 ? inrEstimate.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '0.00'}
                   </p>
                 </div>
               </div>
 
-              {/* Centered Directional Arrow */}
-              <div className="flex items-center justify-start pl-3.5">
-                <div className="w-6 h-6 rounded-full bg-[#8BE3BB] text-[#071410] flex items-center justify-center shadow-xs">
+              {/* Arrow */}
+              <div className="flex items-center pl-3">
+                <div className="w-6 h-6 rounded-full bg-[#8BE3BB] text-[#071410] flex items-center justify-center">
                   <ArrowDown className="w-3.5 h-3.5 stroke-[2.5]" />
                 </div>
               </div>
 
-              {/* "To" Recipient */}
+              {/* Recipient */}
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#183126] border border-[#294438] flex items-center justify-center text-xs text-[#91AAA0]">
-                  👤
+                <div className="w-8 h-8 rounded-full bg-[#152920] border border-[#233a30] flex items-center justify-center">
+                  <User className="w-4 h-4 text-[#7a9187]" />
                 </div>
                 <div>
-                  <p className="text-[11px] text-[#91AAA0]">To</p>
-                  <p className="text-sm font-mono font-medium text-[#F4F1E8]">
-                    {recipient ? truncateAddress(trimmedRecipient) : '0x...'}
+                  <p className="text-xs text-[#7a9187]">To</p>
+                  <p className="text-sm font-mono font-medium tabular-nums text-[#F4F1E8]">
+                    {recipient ? truncateAddress(trimmedRecipient) : '0x\u2026'}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Key Breakdown Metrics */}
-            <div className="space-y-2.5 pt-1 text-xs divide-y divide-[#294438]/40">
-              <div className="flex items-center justify-between pt-2 first:pt-0">
-                <span className="text-[#91AAA0]">Network</span>
+            {/* Key Metrics */}
+            <div className="text-xs divide-y divide-[#233a30]/50">
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-[#7a9187]">Network</span>
                 <span className="inline-flex items-center gap-1.5 text-[#6ED6A8] font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#6ED6A8]" />
-                  Sepolia Testnet
+                  Sepolia testnet
                 </span>
               </div>
 
-              <div className="flex items-center justify-between pt-2">
-                <span className="text-[#91AAA0]">Estimated gas fee</span>
-                <span className="font-mono font-medium text-[#F4F1E8]">
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-[#7a9187]">Estimated gas fee</span>
+                <span className="font-mono font-medium tabular-nums text-[#F4F1E8]">
                   {formattedGasEstimate}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between pt-2">
-                <span className="text-[#91AAA0]">Estimated time</span>
-                <span className="font-medium text-[#F4F1E8]">~ 15–30 seconds</span>
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-[#7a9187]">Estimated time</span>
+                <span className="font-medium text-[#F4F1E8]">15\u201330 seconds</span>
               </div>
             </div>
 
-            {/* Action Button */}
+            {/* Secondary CTA */}
             <button
               type="button"
               onClick={handleReviewClick}
               disabled={isConnected && (!isFormComplete || isSending || isConfirming)}
-              className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-all text-center ${
+              className={`w-full py-2.5 px-4 rounded-lg text-xs font-bold transition-all duration-150 text-center ${
                 !isConnected
-                  ? 'bg-[#10231B] hover:bg-[#142920] text-[#8BE3BB] border border-[#294438] cursor-pointer'
+                  ? 'bg-[#071410] hover:bg-[#0d1e17] text-[#8BE3BB] border border-[#233a30] cursor-pointer'
                   : isFormComplete && !isSending && !isConfirming
-                  ? 'bg-[#10231B] hover:bg-[#142920] text-[#8BE3BB] border border-[#294438] cursor-pointer'
-                  : 'bg-[#10231B]/60 text-[#91AAA0]/50 border border-[#294438]/40 cursor-not-allowed'
+                  ? 'bg-[#071410] hover:bg-[#0d1e17] text-[#8BE3BB] border border-[#233a30] cursor-pointer'
+                  : 'bg-[#071410]/60 text-[#7a9187]/50 border border-[#233a30]/40 cursor-not-allowed'
               }`}
             >
               {isSending
-                ? 'Confirming in Wallet...'
+                ? 'Confirming in wallet\u2026'
                 : isConfirming
-                ? 'Processing on-chain...'
+                ? 'Processing on-chain\u2026'
                 : !isConnected
                 ? 'Connect in MetaMask'
                 : 'Confirm in MetaMask'}
             </button>
           </div>
 
-          {/* ================= IMPORTANT NOTES PANEL ================= */}
-          <div className="rounded-2xl bg-[#183126] border border-[#294438] p-5.5 space-y-4 shadow-sm">
+          {/* IMPORTANT NOTES PANEL */}
+          <div className={cardCls}>
             <div className="flex items-center gap-2">
-              <Info className="w-4 h-4 text-[#8BE3BB]" />
-              <h3 className="text-sm font-bold text-[#F4F1E8]">Important Notes</h3>
+              <Info className="w-4 h-4 text-[#8BE3BB] shrink-0" />
+              <h3 className="text-sm font-bold text-[#F4F1E8]">Important notes</h3>
             </div>
 
-            <div className="space-y-3.5 text-xs">
-              {/* Note 1 */}
+            <div className="space-y-3 text-xs">
               <div className="flex items-start gap-3">
-                <Shield className="w-4 h-4 text-[#91AAA0] shrink-0 mt-0.5" />
+                <Shield className="w-4 h-4 text-[#7a9187] shrink-0 mt-px" />
                 <div>
                   <p className="font-semibold text-[#F4F1E8]">This is a testnet</p>
-                  <p className="text-[11px] text-[#91AAA0] mt-0.5">
-                    You are using Sepolia testnet. Tokens have no real-world value.
+                  <p className="text-xs text-[#7a9187] mt-0.5">
+                    Sepolia tokens have no real-world value.
                   </p>
                 </div>
               </div>
 
-              {/* Note 2 */}
               <div className="flex items-start gap-3">
-                <Globe className="w-4 h-4 text-[#91AAA0] shrink-0 mt-0.5" />
+                <Globe className="w-4 h-4 text-[#7a9187] shrink-0 mt-px" />
                 <div>
                   <p className="font-semibold text-[#F4F1E8]">Double-check the address</p>
-                  <p className="text-[11px] text-[#91AAA0] mt-0.5">
-                    Crypto transactions are irreversible.
+                  <p className="text-xs text-[#7a9187] mt-0.5">
+                    Crypto transfers are irreversible once confirmed.
                   </p>
                 </div>
               </div>
 
-              {/* Note 3 */}
               <div className="flex items-start gap-3">
-                <Clock className="w-4 h-4 text-[#91AAA0] shrink-0 mt-0.5" />
+                <Clock className="w-4 h-4 text-[#7a9187] shrink-0 mt-px" />
                 <div>
-                  <p className="font-semibold text-[#F4F1E8]">Keep some ETH for gas</p>
-                  <p className="text-[11px] text-[#91AAA0] mt-0.5">
-                    Ensure you have enough SEP ETH to cover network fees.
+                  <p className="font-semibold text-[#F4F1E8]">Keep ETH for gas</p>
+                  <p className="text-xs text-[#7a9187] mt-0.5">
+                    Ensure you have enough Sepolia ETH to cover network fees.
                   </p>
                 </div>
               </div>

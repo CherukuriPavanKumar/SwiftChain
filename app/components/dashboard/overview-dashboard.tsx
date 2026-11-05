@@ -59,21 +59,21 @@ export function OverviewDashboard({
           onTabChange={setActiveTab}
         />
 
-        {/* Tab 1: Overview Dashboard (Matches Primary Visual Reference) */}
+        {/* Tab 1: Overview Dashboard */}
         {activeTab === 'overview' && (
-          <div className="space-y-6 pt-6 animate-in fade-in duration-150">
+          <div className="space-y-5 pt-6 animate-in fade-in duration-150">
             {/* Row 1: 3-Card Portfolio & Asset Summary */}
             <PortfolioSummary onSelectAsset={handleSelectAsset} />
 
             {/* Row 2: Recent Transactions (Left) + Supporting Panels (Right) */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
               {/* Primary Column: Recent Transactions Table */}
               <div className="lg:col-span-2">
                 <RecentTransactions onViewAll={() => setActiveTab('activity')} />
               </div>
 
               {/* Supporting Column: Supported Assets + Network Status */}
-              <div className="lg:col-span-1 space-y-5">
+              <div className="lg:col-span-1 space-y-4">
                 <SupportedAssets onSelectAsset={handleSelectAsset} />
                 <NetworkStatus />
               </div>

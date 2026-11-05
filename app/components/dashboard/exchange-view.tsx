@@ -166,46 +166,51 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
     onLockRateAndSend(selectedAsset, quote.destinationCryptoAmount);
   }
 
+  /* Shared class tokens */
+  const cardCls = 'rounded-xl bg-[#0d1e17] border border-[#233a30] p-5 space-y-4';
+  const innerBlockCls = 'rounded-lg bg-[#071410] border border-[#233a30]';
+
   return (
-    <div className="pt-6 space-y-6 animate-in fade-in duration-150">
+    <div className="pt-6 space-y-5 animate-in fade-in duration-150">
       {/* 2-Column Responsive Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* ================= LEFT COLUMN: CONVERTER & QUOTE (approx 62%) ================= */}
-        <div className="lg:col-span-7 space-y-5">
+
+        {/* LEFT COLUMN: Converter & Quote */}
+        <div className="lg:col-span-7 space-y-4">
           {/* Main Calculator Card */}
-          <div className="rounded-2xl bg-[#183126] border border-[#294438] p-5.5 space-y-5 shadow-sm">
+          <div className={cardCls}>
             {/* Header & Mode Switch */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="text-base font-bold text-[#F4F1E8]">Remittance Quote & Converter</h3>
-                <p className="text-xs text-[#91AAA0] mt-0.5">
-                  Live spot rates guaranteed for 60 seconds with testnet dispatch.
+                <h3 className="text-base font-bold text-[#F4F1E8]">Remittance quote &amp; converter</h3>
+                <p className="text-xs text-[#7a9187] mt-0.5">
+                  Live spot rates guaranteed for 60 seconds.
                 </p>
               </div>
 
               {/* Segmented Mode Selector */}
-              <div className="flex items-center p-1 rounded-xl bg-[#10231B] border border-[#294438] shrink-0 self-start sm:self-auto">
+              <div className="flex items-center p-1 rounded-lg bg-[#071410] border border-[#233a30] shrink-0 self-start sm:self-auto">
                 <button
                   type="button"
                   onClick={() => setActiveMode('remittance')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-150 ${
                     activeMode === 'remittance'
-                      ? 'bg-[#183126] text-[#8BE3BB] shadow-xs'
-                      : 'text-[#91AAA0] hover:text-[#F4F1E8]'
+                      ? 'bg-[#152920] text-[#8BE3BB]'
+                      : 'text-[#7a9187] hover:text-[#F4F1E8]'
                   }`}
                 >
-                  Remittance Quote
+                  Remittance
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveMode('converter')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors duration-150 ${
                     activeMode === 'converter'
-                      ? 'bg-[#183126] text-[#8BE3BB] shadow-xs'
-                      : 'text-[#91AAA0] hover:text-[#F4F1E8]'
+                      ? 'bg-[#152920] text-[#8BE3BB]'
+                      : 'text-[#7a9187] hover:text-[#F4F1E8]'
                   }`}
                 >
-                  Quick Converter
+                  Converter
                 </button>
               </div>
             </div>
@@ -216,15 +221,15 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
                 {/* Arrow + Two boxes as stacked block */}
                 <div className="relative">
                   {/* 1. "You Send (INR)" Box */}
-                  <div className="rounded-xl bg-[#10231B] border border-[#294438] p-4 space-y-2.5 pb-5">
+                  <div className={`${innerBlockCls} p-4 space-y-2.5 pb-5`}>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#91AAA0] font-medium">You send</span>
-                      <span className="text-[#91AAA0] font-mono text-[11px]">Fiat Corridor: India</span>
+                      <span className="text-[#7a9187]">You send</span>
+                      <span className="text-[#7a9187] font-mono">Corridor: India</span>
                     </div>
 
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <span className="text-lg font-bold text-[#8BE3BB] shrink-0">₹</span>
+                        <span className="text-lg font-bold text-[#8BE3BB] shrink-0">\u20b9</span>
                         <input
                           type="number"
                           min="100"
@@ -232,10 +237,10 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
                           value={inrAmount}
                           onChange={(e) => setInrAmount(e.target.value)}
                           placeholder="10000"
-                          className="bg-transparent border-none outline-none text-xl sm:text-2xl font-bold font-mono text-[#F4F1E8] w-full min-w-0 [appearance:textfield] [-webkit-appearance:none]"
+                          className="bg-transparent border-none outline-none text-xl sm:text-2xl font-bold font-mono tabular-nums text-[#F4F1E8] w-full min-w-0 [appearance:textfield] [-webkit-appearance:none]"
                         />
                       </div>
-                      <span className="px-2.5 py-1 rounded-lg bg-[#183126] border border-[#294438] text-xs font-bold font-mono text-[#F4F1E8] shrink-0">
+                      <span className="px-2.5 py-1 rounded-md bg-[#152920] border border-[#233a30] text-xs font-bold font-mono tabular-nums text-[#F4F1E8] shrink-0">
                         INR
                       </span>
                     </div>
@@ -247,137 +252,137 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
                           key={amt}
                           type="button"
                           onClick={() => setInrAmount(amt.toString())}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-medium transition-colors ${
+                          className={`px-2.5 py-1 rounded-md text-xs font-mono font-medium transition-colors duration-150 ${
                             inrAmount === amt.toString()
-                              ? 'bg-[#183126] text-[#8BE3BB] border border-[#8BE3BB]/40'
-                              : 'bg-[#183126]/60 text-[#91AAA0] hover:text-[#F4F1E8] hover:bg-[#183126]'
+                              ? 'bg-[#152920] text-[#8BE3BB] border border-[#233a30]'
+                              : 'bg-[#0d1e17] text-[#7a9187] border border-[#233a30]/50 hover:text-[#F4F1E8] hover:bg-[#152920]'
                           }`}
                         >
-                          ₹{amt.toLocaleString('en-IN')}
+                          \u20b9{amt.toLocaleString('en-IN')}
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Conversion Direction Divider Arrow — centred between boxes */}
+                  {/* Conversion Direction Divider Arrow */}
                   <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-                    <div className="w-9 h-9 rounded-full bg-[#183126] border-2 border-[#294438] text-[#8BE3BB] flex items-center justify-center shadow-md">
+                    <div className="w-8 h-8 rounded-full bg-[#0d1e17] border border-[#233a30] text-[#8BE3BB] flex items-center justify-center">
                       <ArrowDown className="w-4 h-4" />
                     </div>
                   </div>
 
                   {/* 2. "Recipient Receives" Box */}
-                  <div className="rounded-xl bg-[#10231B] border border-[#294438] p-4 pt-6 space-y-2.5 mt-px">
-                   <div className="flex items-center justify-between text-xs">
-                     <span className="text-[#91AAA0] font-medium">Recipient receives (Guaranteed)</span>
-                     <span className="text-[#91AAA0] font-mono text-[11px]">
-                       {selectedAsset === 'USDC' ? 'Circle ERC-20' : 'Ethereum Native'}
-                     </span>
-                   </div>
+                  <div className={`${innerBlockCls} p-4 pt-6 space-y-2.5 mt-px`}>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#7a9187]">Recipient receives</span>
+                      <span className="text-[#7a9187] font-mono">
+                        {selectedAsset === 'USDC' ? 'Circle ERC-20' : 'Ethereum native'}
+                      </span>
+                    </div>
 
-                   <div className="flex items-center justify-between gap-3">
-                     <p className="text-xl sm:text-2xl font-bold font-mono text-[#F4F1E8] truncate">
-                       {formattedDeliveredAmount}
-                     </p>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-[#F4F1E8] truncate">
+                        {formattedDeliveredAmount}
+                      </p>
 
-                     {/* Asset Selector Dropdown Button */}
-                     <div className="relative shrink-0">
-                       <button
-                         type="button"
-                         onClick={() => setAssetDropdownOpen((prev) => !prev)}
-                         className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#183126] border border-[#294438] hover:border-[#8BE3BB]/40 text-[#F4F1E8] transition-colors"
-                       >
-                         {selectedAsset === 'USDC' ? (
-                           <UsdcIcon className="w-5 h-5" />
-                         ) : (
-                           <EthereumIcon className="w-5 h-5" />
-                         )}
-                         <span className="font-mono text-xs font-bold">{selectedAsset}</span>
-                         <ChevronDown className="w-3.5 h-3.5 text-[#91AAA0]" />
-                       </button>
+                      {/* Asset Selector Dropdown */}
+                      <div className="relative shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setAssetDropdownOpen((prev) => !prev)}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#152920] border border-[#233a30] hover:border-[#8BE3BB]/35 text-[#F4F1E8] transition-colors duration-150"
+                        >
+                          {selectedAsset === 'USDC' ? (
+                            <UsdcIcon className="w-5 h-5" />
+                          ) : (
+                            <EthereumIcon className="w-5 h-5" />
+                          )}
+                          <span className="font-mono text-xs font-bold tabular-nums">{selectedAsset}</span>
+                          <ChevronDown className="w-3.5 h-3.5 text-[#7a9187]" />
+                        </button>
 
-                       {assetDropdownOpen && (
-                         <div className="absolute top-full right-0 mt-1.5 w-36 rounded-xl bg-[#10231B] border border-[#294438] p-1.5 shadow-xl z-20 space-y-1">
-                           {(['USDC', 'ETH'] as SupportedAssetSymbol[]).map((sym) => (
-                             <button
-                               key={sym}
-                               type="button"
-                               onClick={() => {
-                                 setSelectedAsset(sym);
-                                 setAssetDropdownOpen(false);
-                               }}
-                               className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-left transition-colors ${
-                                 selectedAsset === sym
-                                   ? 'bg-[#183126] text-[#8BE3BB]'
-                                   : 'text-[#91AAA0] hover:text-[#F4F1E8] hover:bg-[#183126]/50'
-                               }`}
-                             >
-                               {sym === 'USDC' ? (
-                                 <UsdcIcon className="w-4 h-4" />
-                               ) : (
-                                 <EthereumIcon className="w-4 h-4" />
-                               )}
-                               <span>{sym}</span>
-                             </button>
-                           ))}
-                         </div>
-                       )}
-                     </div>
-                   </div>
+                        {assetDropdownOpen && (
+                          <div className="absolute top-full right-0 mt-1.5 w-36 rounded-lg bg-[#0d1e17] border border-[#233a30] p-1 shadow-lg z-20 space-y-0.5">
+                            {(['USDC', 'ETH'] as SupportedAssetSymbol[]).map((sym) => (
+                              <button
+                                key={sym}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedAsset(sym);
+                                  setAssetDropdownOpen(false);
+                                }}
+                                className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-md text-xs font-medium text-left transition-colors duration-150 ${
+                                  selectedAsset === sym
+                                    ? 'bg-[#152920] text-[#8BE3BB]'
+                                    : 'text-[#a6b8b0] hover:text-[#F4F1E8] hover:bg-[#152920]/60'
+                                }`}
+                              >
+                                {sym === 'USDC' ? (
+                                  <UsdcIcon className="w-4 h-4" />
+                                ) : (
+                                  <EthereumIcon className="w-4 h-4" />
+                                )}
+                                <span className="tabular-nums">{sym}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-                   <p className="text-xs text-[#91AAA0] font-mono">
-                     ≈ {quote ? formatUSD(quote.estimatedUsdEquivalent) : '$0.00 USD'}
-                     <span className="text-[#91AAA0]/60 mx-1">•</span>
-                     Rate: 1 {selectedAsset} = ₹
-                     {selectedAsset === 'USDC'
-                       ? spotRateInrPerUsd.toFixed(2)
-                       : (ethPrice?.inr ?? 230000).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                   </p>
+                    <p className="text-xs text-[#7a9187] font-mono tabular-nums">
+                      {quote ? formatUSD(quote.estimatedUsdEquivalent) : '$0.00 USD'}
+                      <span className="text-[#7a9187]/50 mx-1">&middot;</span>
+                      Rate: 1 {selectedAsset} = \u20b9
+                      {selectedAsset === 'USDC'
+                        ? spotRateInrPerUsd.toFixed(2)
+                        : (ethPrice?.inr ?? 230000).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                    </p>
                   </div>
                 </div>
 
-                {/* 3. 60-Second Guaranteed Rate Lock Banner */}
-                <div className="rounded-xl bg-[#10231B] border border-[#294438] p-4 space-y-3 mt-4">
+                {/* 3. 60-Second Rate Lock Banner */}
+                <div className={`${innerBlockCls} p-4 space-y-3 mt-3`}>
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
                       <Lock className="w-3.5 h-3.5 text-[#8BE3BB]" />
-                      <span className="font-semibold text-[#F4F1E8]">Rate Guarantee</span>
+                      <span className="font-semibold text-[#F4F1E8]">Rate guarantee</span>
                     </div>
 
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#183126] border border-[#294438] text-[11px] font-mono text-[#8BE3BB]">
-                      <Clock className="w-3 h-3 animate-spin text-[#8BE3BB]" style={{ animationDuration: '4s' }} />
-                      <span>{secondsRemaining}s remaining</span>
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#152920] border border-[#233a30] text-xs font-mono text-[#8BE3BB] tabular-nums">
+                      <Clock className="w-3 h-3 shrink-0" />
+                      <span>{secondsRemaining}s</span>
                     </div>
                   </div>
 
                   {/* Transparent Fee & Delivery Table */}
-                  <div className="space-y-1.5 text-xs pt-1 border-t border-[#294438]/50">
-                    <div className="flex items-center justify-between text-[#91AAA0]">
-                      <span>Reference Spot Rate</span>
-                      <span className="font-mono text-[#F4F1E8]">
-                        1 {selectedAsset} = ₹
+                  <div className="space-y-1.5 text-xs pt-1 border-t border-[#233a30]/50">
+                    <div className="flex items-center justify-between text-[#7a9187]">
+                      <span>Reference spot rate</span>
+                      <span className="font-mono tabular-nums text-[#a6b8b0]">
+                        1 {selectedAsset} = \u20b9
                         {selectedAsset === 'USDC'
                           ? spotRateInrPerUsd.toFixed(2)
                           : (ethPrice?.inr ?? 230000).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between text-[#91AAA0]">
-                      <span>Estimated Sepolia Gas Fee</span>
-                      <span className="font-mono text-[#F4F1E8]">
+                    <div className="flex items-center justify-between text-[#7a9187]">
+                      <span>Estimated gas fee</span>
+                      <span className="font-mono tabular-nums text-[#a6b8b0]">
                         {quote ? quote.fees.estimatedNetworkFeeEth : '0.000042'} ETH (~
-                        {quote ? formatINR(quote.fees.estimatedNetworkFeeInr) : '₹9.50'})
+                        {quote ? formatINR(quote.fees.estimatedNetworkFeeInr) : '\u20b99.50'})
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between text-[#91AAA0]">
-                      <span>Platform Service Fee</span>
-                      <span className="font-mono text-[#6ED6A8]">₹0.00 (0% on Testnet)</span>
+                    <div className="flex items-center justify-between text-[#7a9187]">
+                      <span>Platform fee</span>
+                      <span className="font-mono tabular-nums text-[#6ED6A8]">\u20b90.00 (0% on testnet)</span>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1 border-t border-[#294438]/40 font-semibold text-[#F4F1E8]">
-                      <span>Guaranteed Destination Delivery</span>
-                      <span className="font-mono text-[#8BE3BB]">
+                    <div className="flex items-center justify-between pt-1.5 border-t border-[#233a30]/40 font-semibold text-[#F4F1E8]">
+                      <span>Guaranteed delivery</span>
+                      <span className="font-mono tabular-nums text-[#8BE3BB]">
                         {quote ? `${formattedDeliveredAmount} ${selectedAsset}` : '0.00'}
                       </span>
                     </div>
@@ -389,14 +394,14 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
                   type="button"
                   onClick={handleLockAndSend}
                   disabled={!isValidAmount || !quote}
-                  className={`w-full py-3.5 px-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 mt-4 ${
+                  className={`w-full py-3 px-4 rounded-lg text-sm font-bold transition-all duration-150 flex items-center justify-center gap-2 mt-3 ${
                     isValidAmount && quote
-                      ? 'bg-[#1e3d30] hover:bg-[#254d3b] text-[#8BE3BB] border border-[#294438] shadow-sm active:scale-[0.99] cursor-pointer'
-                      : 'bg-[#142920] text-[#91AAA0]/50 border border-[#294438]/50 cursor-not-allowed'
+                      ? 'bg-[#152920] hover:bg-[#1e3d30] text-[#8BE3BB] border border-[#233a30] active:scale-[0.99] cursor-pointer'
+                      : 'bg-[#0d1e17] text-[#7a9187]/50 border border-[#233a30]/50 cursor-not-allowed'
                   }`}
                 >
                   <Send className="w-4 h-4" />
-                  <span>Lock Rate & Send Money →</span>
+                  <span>Lock rate &amp; send money</span>
                 </button>
               </div>
             )}
@@ -404,15 +409,15 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
             {/* MODE 2: QUICK CONVERTER */}
             {activeMode === 'converter' && (
               <div className="space-y-4">
-                <div className="p-3.5 rounded-xl bg-[#10231B] border border-[#294438] text-xs text-[#91AAA0]">
-                  Convert instantaneously between INR and crypto at current oracle spot rates without locking a quote.
+                <div className={`${innerBlockCls} p-3 text-xs text-[#7a9187]`}>
+                  Convert between INR and crypto at current oracle spot rates without locking a quote.
                 </div>
 
                 {/* Converter Input Box */}
-                <div className="rounded-xl bg-[#10231B] border border-[#294438] p-4 space-y-2">
-                  <div className="flex items-center justify-between text-xs text-[#91AAA0]">
+                <div className={`${innerBlockCls} p-4 space-y-2`}>
+                  <div className="flex items-center justify-between text-xs text-[#7a9187]">
                     <span>From</span>
-                    <span className="font-mono">
+                    <span className="font-mono tabular-nums">
                       {converterDirection === 'inr-to-crypto' ? 'Indian Rupee (INR)' : selectedAsset}
                     </span>
                   </div>
@@ -423,9 +428,9 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
                       min="0"
                       value={converterValue}
                       onChange={(e) => setConverterValue(e.target.value)}
-                      className="bg-transparent border-none outline-none text-xl sm:text-2xl font-bold font-mono text-[#F4F1E8] w-full"
+                      className="bg-transparent border-none outline-none text-xl sm:text-2xl font-bold font-mono tabular-nums text-[#F4F1E8] w-full"
                     />
-                    <span className="px-2.5 py-1 rounded-lg bg-[#183126] border border-[#294438] text-xs font-bold font-mono text-[#F4F1E8]">
+                    <span className="px-2.5 py-1 rounded-md bg-[#152920] border border-[#233a30] text-xs font-bold font-mono tabular-nums text-[#F4F1E8] shrink-0">
                       {converterDirection === 'inr-to-crypto' ? 'INR' : selectedAsset}
                     </span>
                   </div>
@@ -440,7 +445,7 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
                         prev === 'inr-to-crypto' ? 'crypto-to-inr' : 'inr-to-crypto'
                       )
                     }
-                    className="p-2 rounded-full bg-[#183126] border border-[#294438] text-[#8BE3BB] hover:bg-[#10231B] transition-colors"
+                    className="p-2 rounded-full bg-[#152920] border border-[#233a30] text-[#8BE3BB] hover:bg-[#0d1e17] transition-colors duration-150"
                     title="Switch direction"
                   >
                     <ArrowUpDown className="w-4 h-4" />
@@ -448,20 +453,20 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
                 </div>
 
                 {/* Converter Result Box */}
-                <div className="rounded-xl bg-[#10231B] border border-[#294438] p-4 space-y-2">
-                  <div className="flex items-center justify-between text-xs text-[#91AAA0]">
-                    <span>To (Calculated)</span>
-                    <span className="font-mono">
+                <div className={`${innerBlockCls} p-4 space-y-2`}>
+                  <div className="flex items-center justify-between text-xs text-[#7a9187]">
+                    <span>To</span>
+                    <span className="font-mono tabular-nums">
                       {converterDirection === 'inr-to-crypto' ? selectedAsset : 'INR'}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-xl sm:text-2xl font-bold font-mono text-[#8BE3BB] truncate">
-                      {converterDirection === 'inr-to-crypto' ? '' : '₹'}
+                    <p className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-[#8BE3BB] truncate">
+                      {converterDirection === 'inr-to-crypto' ? '' : '\u20b9'}
                       {converterResult}
                     </p>
-                    <span className="px-2.5 py-1 rounded-lg bg-[#183126] border border-[#294438] text-xs font-bold font-mono text-[#F4F1E8]">
+                    <span className="px-2.5 py-1 rounded-md bg-[#152920] border border-[#233a30] text-xs font-bold font-mono tabular-nums text-[#F4F1E8] shrink-0">
                       {converterDirection === 'inr-to-crypto' ? selectedAsset : 'INR'}
                     </span>
                   </div>
@@ -470,54 +475,53 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
             )}
           </div>
 
-          {/* Testnet Faucets & Documentation Card */}
-          <div className="rounded-2xl bg-[#183126] border border-[#294438] p-5 space-y-3 shadow-sm">
+          {/* Testnet Faucets Card */}
+          <div className={`${cardCls} !space-y-3`}>
             <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-[#8BE3BB]" />
-              <h4 className="text-xs font-bold text-[#F4F1E8] uppercase tracking-wider">
-                Sepolia Testnet Resources
-              </h4>
+              <Zap className="w-4 h-4 text-[#8BE3BB] shrink-0" />
+              <h4 className="text-xs font-bold text-[#F4F1E8]">Sepolia testnet resources</h4>
             </div>
-            <p className="text-xs text-[#91AAA0]">
+            <p className="text-xs text-[#7a9187]">
               Exchange calculations use genuine oracle spot feeds. Need testnet funds to execute transfers?
             </p>
-            <div className="flex flex-wrap gap-2.5 pt-1">
+            <div className="flex flex-wrap gap-2 pt-1">
               <a
                 href="https://faucet.circle.com/"
                 target="_blank"
                 rel="noreferrer"
-                className="px-3 py-1.5 rounded-xl bg-[#10231B] border border-[#294438] text-xs font-semibold text-[#8BE3BB] hover:border-[#8BE3BB]/50 transition-colors inline-flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-lg bg-[#071410] border border-[#233a30] text-xs font-semibold text-[#8BE3BB] hover:border-[#8BE3BB]/40 transition-colors duration-150 inline-flex items-center gap-1.5"
               >
-                <span>Circle USDC Faucet</span>
+                <span>Circle USDC faucet</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
               <a
                 href="https://sepoliafaucet.com/"
                 target="_blank"
                 rel="noreferrer"
-                className="px-3 py-1.5 rounded-xl bg-[#10231B] border border-[#294438] text-xs font-semibold text-[#8BE3BB] hover:border-[#8BE3BB]/50 transition-colors inline-flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-lg bg-[#071410] border border-[#233a30] text-xs font-semibold text-[#8BE3BB] hover:border-[#8BE3BB]/40 transition-colors duration-150 inline-flex items-center gap-1.5"
               >
-                <span>Sepolia ETH Faucet</span>
+                <span>Sepolia ETH faucet</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>
           </div>
         </div>
 
-        {/* ================= RIGHT COLUMN: LIVE TICKER & SAVINGS (approx 38%) ================= */}
-        <div className="lg:col-span-5 space-y-5">
-          {/* Card 1: Live Market Rates & Oracle Ticker */}
-          <div className="rounded-2xl bg-[#183126] border border-[#294438] p-5.5 space-y-4 shadow-sm">
+        {/* RIGHT COLUMN: Live Ticker & Savings */}
+        <div className="lg:col-span-5 space-y-4">
+
+          {/* Card 1: Live Market Rates */}
+          <div className={cardCls}>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-[#F4F1E8]">Live Market Rates</h3>
-                <p className="text-xs text-[#91AAA0] mt-0.5">Sepolia Oracle & CoinGecko Feeds</p>
+                <h3 className="text-sm font-bold text-[#F4F1E8]">Live market rates</h3>
+                <p className="text-xs text-[#7a9187] mt-0.5">Sepolia oracle &amp; CoinGecko feeds</p>
               </div>
 
               <button
                 type="button"
                 onClick={() => refetch()}
-                className="p-2 rounded-xl bg-[#10231B] border border-[#294438] text-[#91AAA0] hover:text-[#8BE3BB] transition-colors"
+                className="p-2 rounded-lg bg-[#071410] border border-[#233a30] text-[#7a9187] hover:text-[#8BE3BB] transition-colors duration-150"
                 title="Refresh rates"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
@@ -525,74 +529,76 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
             </div>
 
             {/* ETH Ticker Row */}
-            <div className="rounded-xl bg-[#10231B] border border-[#294438] p-3.5 flex items-center justify-between">
+            <div className={`${innerBlockCls} p-3.5 flex items-center justify-between`}>
               <div className="flex items-center gap-3">
                 <EthereumIcon className="w-8 h-8" />
                 <div>
                   <p className="text-xs font-bold text-[#F4F1E8]">Ethereum</p>
-                  <p className="text-[11px] text-[#91AAA0] font-mono">ETH / INR</p>
+                  <p className="text-xs text-[#7a9187] font-mono">ETH / INR</p>
                 </div>
               </div>
 
               <div className="text-right">
-                <p className="text-xs sm:text-sm font-bold font-mono text-[#F4F1E8]">
-                  ₹{(ethPrice?.inr ?? 230000).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                <p className="text-xs sm:text-sm font-bold font-mono tabular-nums text-[#F4F1E8]">
+                  \u20b9{(ethPrice?.inr ?? 230000).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                 </p>
-                <p className="text-[10px] font-mono text-[#91AAA0]">
+                <p className="text-xs font-mono tabular-nums text-[#7a9187]">
                   ${(ethPrice?.usd ?? 2400).toLocaleString('en-US', { maximumFractionDigits: 2 })} USD
                 </p>
               </div>
             </div>
 
             {/* USDC Ticker Row */}
-            <div className="rounded-xl bg-[#10231B] border border-[#294438] p-3.5 flex items-center justify-between">
+            <div className={`${innerBlockCls} p-3.5 flex items-center justify-between`}>
               <div className="flex items-center gap-3">
                 <UsdcIcon className="w-8 h-8" />
                 <div>
                   <p className="text-xs font-bold text-[#F4F1E8]">USD Coin</p>
-                  <p className="text-[11px] text-[#91AAA0] font-mono">USDC / INR</p>
+                  <p className="text-xs text-[#7a9187] font-mono">USDC / INR</p>
                 </div>
               </div>
 
               <div className="text-right">
-                <p className="text-xs sm:text-sm font-bold font-mono text-[#F4F1E8]">
-                  ₹{spotRateInrPerUsd.toFixed(2)}
+                <p className="text-xs sm:text-sm font-bold font-mono tabular-nums text-[#F4F1E8]">
+                  \u20b9{spotRateInrPerUsd.toFixed(2)}
                 </p>
-                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#1e3d30] text-[#6ED6A8]">
-                  $1.00 Pegged
+                <span className="inline-block px-1.5 py-0.5 rounded-md text-xs font-medium bg-[#152920] border border-[#233a30] text-[#6ED6A8]">
+                  $1.00 pegged
                 </span>
               </div>
             </div>
 
             {/* Live Status Footnote */}
-            <div className="flex items-center justify-between text-[11px] text-[#91AAA0] pt-1">
+            <div className="flex items-center justify-between text-xs text-[#7a9187] pt-1">
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#6ED6A8] animate-pulse" />
-                <span>Live Feed Online</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#6ED6A8]" />
+                <span>Live feed online</span>
               </span>
-              <span>Updated: {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString() : 'Recent'}</span>
+              <span className="font-mono tabular-nums">
+                {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString() : 'Recent'}
+              </span>
             </div>
           </div>
 
           {/* Card 2: Cross-Corridor Savings Benchmark */}
-          <div className="rounded-2xl bg-[#183126] border border-[#294438] p-5.5 space-y-4 shadow-sm">
+          <div className={cardCls}>
             <div>
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-[#F4F1E8]">Savings Benchmark</h3>
+                <h3 className="text-sm font-bold text-[#F4F1E8]">Savings benchmark</h3>
 
                 {/* Corridor Selector Dropdown */}
                 <div className="relative">
                   <button
                     type="button"
                     onClick={() => setCorridorDropdownOpen((prev) => !prev)}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#10231B] border border-[#294438] text-xs font-medium text-[#F4F1E8] hover:border-[#8BE3BB]/40 transition-colors"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#071410] border border-[#233a30] text-xs font-medium text-[#F4F1E8] hover:border-[#8BE3BB]/35 transition-colors duration-150"
                   >
                     <span>{selectedCorridor.flag} {selectedCorridor.currency}</span>
-                    <ChevronDown className="w-3 h-3 text-[#91AAA0]" />
+                    <ChevronDown className="w-3 h-3 text-[#7a9187]" />
                   </button>
 
                   {corridorDropdownOpen && (
-                    <div className="absolute top-full right-0 mt-1.5 w-44 rounded-xl bg-[#10231B] border border-[#294438] p-1.5 shadow-xl z-20 space-y-1">
+                    <div className="absolute top-full right-0 mt-1.5 w-44 rounded-lg bg-[#0d1e17] border border-[#233a30] p-1 shadow-lg z-20 space-y-0.5">
                       {SUPPORTED_DESTINATIONS.map((dest) => (
                         <button
                           key={dest.id}
@@ -601,94 +607,94 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
                             setSelectedCorridorId(dest.id);
                             setCorridorDropdownOpen(false);
                           }}
-                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-left transition-colors ${
+                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-left transition-colors duration-150 ${
                             selectedCorridorId === dest.id
-                              ? 'bg-[#183126] text-[#8BE3BB]'
-                              : 'text-[#91AAA0] hover:text-[#F4F1E8] hover:bg-[#183126]/50'
+                              ? 'bg-[#152920] text-[#8BE3BB]'
+                              : 'text-[#a6b8b0] hover:text-[#F4F1E8] hover:bg-[#152920]/60'
                           }`}
                         >
                           <span>{dest.flag}</span>
                           <span>{dest.country}</span>
-                          <span className="text-[10px] text-[#91AAA0]">({dest.currency})</span>
+                          <span className="text-xs text-[#7a9187]">({dest.currency})</span>
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
               </div>
-              <p className="text-xs text-[#91AAA0] mt-0.5">
-                Comparison on a ₹{parsedInr > 0 ? parsedInr.toLocaleString('en-IN') : '10,000'} transfer
+              <p className="text-xs text-[#7a9187] mt-0.5">
+                On a \u20b9{parsedInr > 0 ? parsedInr.toLocaleString('en-IN') : '10,000'} transfer
               </p>
             </div>
 
             {/* Provider Breakdown */}
-            <div className="space-y-2.5">
-              {/* SwiftChain Card (Recommended) */}
-              <div className="rounded-xl bg-[#10231B] border border-[#8BE3BB]/30 p-3 space-y-2">
+            <div className="space-y-2">
+              {/* SwiftChain Row */}
+              <div className={`rounded-lg bg-[#071410] border border-[#8BE3BB]/20 p-3 space-y-1.5`}>
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-[#F4F1E8]">SwiftChain (Web3 Rail)</span>
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#1e3d30] text-[#6ED6A8]">
-                      Best Value
+                    <span className="font-bold text-[#F4F1E8]">SwiftChain</span>
+                    <span className="px-1.5 py-0.5 rounded-md text-xs font-semibold bg-[#152920] border border-[#233a30] text-[#6ED6A8]">
+                      Best value
                     </span>
                   </div>
-                  <span className="font-bold font-mono text-[#8BE3BB]">
+                  <span className="font-bold font-mono tabular-nums text-[#8BE3BB]">
                     {selectedCorridor.currencySymbol}
                     {swiftchainProvider?.destinationAmountDelivered.toFixed(2) ?? '105.20'}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] text-[#91AAA0]">
-                  <span>Fee: 0% Platform + ~₹25 Gas</span>
-                  <span className="text-[#6ED6A8] flex items-center gap-1 font-medium">
+                <div className="flex items-center justify-between text-xs text-[#7a9187]">
+                  <span>0% platform + ~\u20b925 gas</span>
+                  <span className="text-[#6ED6A8] flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    <span>&lt; 30 seconds</span>
+                    <span>under 30 seconds</span>
                   </span>
                 </div>
               </div>
 
               {/* Traditional Bank Wire */}
-              <div className="rounded-xl bg-[#10231B]/60 border border-[#294438] p-3 space-y-2">
+              <div className={`${innerBlockCls} p-3 space-y-1.5 opacity-80`}>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium text-[#F4F1E8]">Traditional Bank Wire (SWIFT)</span>
-                  <span className="font-mono text-[#91AAA0]">
+                  <span className="font-medium text-[#F4F1E8]">Bank wire (SWIFT)</span>
+                  <span className="font-mono tabular-nums text-[#7a9187]">
                     {selectedCorridor.currencySymbol}
                     {bankWireProvider?.destinationAmountDelivered.toFixed(2) ?? '98.40'}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] text-[#91AAA0]">
-                  <span>Fee: ~3.5% FX Spread + ₹1,500</span>
-                  <span>3–5 business days</span>
+                <div className="flex items-center justify-between text-xs text-[#7a9187]">
+                  <span>~3.5% FX spread + \u20b91,500</span>
+                  <span>3\u20135 business days</span>
                 </div>
               </div>
 
               {/* Legacy MTO */}
-              <div className="rounded-xl bg-[#10231B]/60 border border-[#294438] p-3 space-y-2">
+              <div className={`${innerBlockCls} p-3 space-y-1.5 opacity-80`}>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium text-[#F4F1E8]">Legacy Money Transfer (MTO)</span>
-                  <span className="font-mono text-[#91AAA0]">
+                  <span className="font-medium text-[#F4F1E8]">Money transfer operator</span>
+                  <span className="font-mono tabular-nums text-[#7a9187]">
                     {selectedCorridor.currencySymbol}
                     {legacyMtoProvider?.destinationAmountDelivered.toFixed(2) ?? '96.10'}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] text-[#91AAA0]">
-                  <span>Fee: ~4.0% FX Spread + Fee</span>
-                  <span>1–2 business days</span>
+                <div className="flex items-center justify-between text-xs text-[#7a9187]">
+                  <span>~4.0% FX spread + fee</span>
+                  <span>1\u20132 business days</span>
                 </div>
               </div>
             </div>
 
-            {/* Benchmark Savings Callout Banner */}
-            <div className="p-3 rounded-xl bg-[#1e3d30]/60 border border-[#294438] text-xs text-[#6ED6A8] flex items-start gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-[#8BE3BB] shrink-0 mt-0.5" />
+            {/* Savings Callout Banner */}
+            <div className="p-3 rounded-lg bg-[#152920]/60 border border-[#233a30] text-xs flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-[#8BE3BB] shrink-0 mt-px" />
               <div>
                 <p className="font-semibold text-[#F4F1E8]">
                   Recipient receives up to {selectedCorridor.currencySymbol}
                   {savingsDifference.toFixed(2)} more with SwiftChain.
                 </p>
-                <p className="text-[11px] text-[#91AAA0] mt-0.5">
+                <p className="text-xs text-[#7a9187] mt-0.5">
                   Eliminates correspondent banking layers with instant on-chain settlement.
                 </p>
               </div>

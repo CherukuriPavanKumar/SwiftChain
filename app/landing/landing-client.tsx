@@ -29,9 +29,8 @@ function FaqAccordionItem({ q, a }: { q: string; a: string }) {
           {q}
         </span>
         <ChevronDown
-          className={`w-5 h-5 text-[#91AAA0] shrink-0 transition-transform duration-200 ${
-            open ? 'rotate-180 text-[#8BE3BB]' : 'group-hover:text-[#F4F1E8]'
-          }`}
+          className={`w-5 h-5 text-[#91AAA0] shrink-0 transition-transform duration-200 ${open ? 'rotate-180 text-[#8BE3BB]' : 'group-hover:text-[#F4F1E8]'
+            }`}
         />
       </button>
       {open && (
@@ -142,9 +141,8 @@ export default function LandingClient() {
     <div className="min-h-screen bg-[#071410] text-[#F4F1E8] antialiased overflow-x-hidden selection:bg-[#8BE3BB]/30 selection:text-[#8BE3BB]">
       {/* ─── Top Navigation Bar ─────────────────────────────────────────── */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
-          scrolled ? 'bg-[#071410]/95 backdrop-blur-md border-b border-[#294438]/70 shadow-lg' : 'bg-transparent'
-        }`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${scrolled ? 'bg-[#071410]/95 backdrop-blur-md border-b border-[#294438]/70 shadow-lg' : 'bg-transparent'
+          }`}
       >
         <div className="max-w-6xl mx-auto px-6 h-18 flex items-center justify-between gap-6">
           {/* Brand Mark */}
@@ -186,7 +184,7 @@ export default function LandingClient() {
             {/* Launch App Primary Button */}
             <Link
               href="/app"
-              className="flex items-center gap-1.5 px-4.5 py-2 rounded-xl bg-[#8BE3BB] text-[#071410] text-sm font-semibold hover:bg-[#a1ecd0] active:scale-[0.98] transition-all shadow-[0_2px_12px_rgba(139,227,187,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8BE3BB]"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#8BE3BB] text-[#071410] text-sm font-semibold hover:bg-[#a1ecd0] active:scale-[0.98] transition-all shadow-[0_2px_12px_rgba(139,227,187,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8BE3BB]"
             >
               Launch App <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
             </Link>
@@ -269,7 +267,7 @@ export default function LandingClient() {
 
       {/* ─── Hero Section (Centered Composition as in Mockup) ───────────── */}
       <section className="relative pt-32 pb-24 sm:pt-40 sm:pb-32 px-6 max-w-6xl mx-auto text-center z-10">
-        {/* Eyebrow */} 
+        {/* Eyebrow */}
         <p className="text-xs sm:text-[13px] font-semibold uppercase tracking-[0.2em] text-[#91AAA0] mb-5">
           BLOCKCHAIN-POWERED REMITTANCE
         </p>
@@ -415,16 +413,16 @@ export default function LandingClient() {
             </div>
 
             {/* Clean, Non-Dense Technical Tier Overview */}
-            <div className="lg:col-span-7 rounded-2xl bg-[#0b1d16] border border-[#1e342a] p-6 sm:p-7 space-y-4 divide-y divide-[#1e342a]">
+            <div className="lg:col-span-7 rounded-2xl border border-[#1e342a] p-6 sm:p-7 space-y-4 divide-y divide-[#1e342a]">
               {techStack.map((item) => (
-                <div key={item.layer} className="pt-4 first:pt-0 space-y-1">
+                <div key={item.layer} className="first:pt-0 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold uppercase tracking-wider text-[#8BE3BB] font-mono">
                       {item.layer}
                     </span>
                     <span className="text-xs font-mono text-[#F4F1E8] font-medium">{item.tech}</span>
                   </div>
-                  <p className="text-xs sm:text-sm text-[#91AAA0] leading-relaxed pt-0.5">{item.desc}</p>
+                  <p className="text-xs sm:text-sm text-[#91AAA0] leading-relaxed pt-0.5 mb-2">{item.desc}</p>
                 </div>
               ))}
             </div>

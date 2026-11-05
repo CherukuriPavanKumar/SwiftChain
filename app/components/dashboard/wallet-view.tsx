@@ -21,7 +21,6 @@ import {
   Send,
   MoreHorizontal,
   X,
-  Wallet,
   Clock,
 } from 'lucide-react';
 import { useTokenBalances } from '@/hooks/use-token-balances';
@@ -47,7 +46,7 @@ interface CustomToken {
 }
 
 function shortAddr(addr: string | null | undefined, head = 6, tail = 4): string {
-  if (!addr) return 'Not Connected';
+  if (!addr) return 'Not connected';
   if (addr.length < head + tail + 3) return addr;
   return `${addr.slice(0, head)}\u2026${addr.slice(-tail)}`;
 }
@@ -106,7 +105,7 @@ function CopyButton({ value, className = '' }: { value?: string; className?: str
       type="button"
       onClick={handleCopy}
       title="Copy to clipboard"
-      className={`p-1.5 rounded-lg text-[#91AAA0] hover:text-[#8BE3BB] hover:bg-[#294438]/50 transition-colors shrink-0 ${className}`}
+      className={`p-1.5 rounded-md text-[#7a9187] hover:text-[#8BE3BB] hover:bg-[#152920] transition-colors duration-150 shrink-0 ${className}`}
       aria-label="Copy address"
     >
       {copied ? (
@@ -126,30 +125,30 @@ function StatusBadge({ status }: { status: string }) {
 
   if (isConfirmed) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium text-[#6ED6A8] bg-[#122c22] border border-[#254d3b]">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#6ED6A8]" />
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium text-[#6ED6A8] bg-[#0d1e17] border border-[#233a30]">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#6ED6A8] shrink-0" />
         Completed
       </span>
     );
   }
   if (isPending) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium text-[#F2C66D] bg-[#2e2615] border border-[#524320]">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#F2C66D] animate-pulse" />
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium text-[#F2C66D] bg-[#1e1a0a] border border-[#3d3215]">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#F2C66D] shrink-0" />
         Pending
       </span>
     );
   }
   if (isFailed) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium text-[#FF8585] bg-[#331a1a] border border-[#592626]">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#FF8585]" />
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium text-[#e57373] bg-[#1a0f0f] border border-[#3d1f1f]">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#e57373] shrink-0" />
         Failed
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium text-[#91AAA0] bg-[#183126] border border-[#294438]">
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium text-[#7a9187] bg-[#0d1e17] border border-[#233a30]">
       {status}
     </span>
   );
@@ -181,20 +180,20 @@ function ReceiveModal({
       onClick={onClose}
     >
       <div
-        className="bg-[#183126] border border-[#294438] rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150"
+        className="bg-[#0d1e17] border border-[#233a30] rounded-xl p-6 w-full max-w-sm shadow-lg space-y-5 animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-[#F4F1E8]">Receive Assets</h3>
-            <p className="text-xs text-[#91AAA0] mt-0.5">
+            <h3 className="text-base font-bold text-[#F4F1E8]">Receive assets</h3>
+            <p className="text-xs text-[#7a9187] mt-0.5">
               Deposit ETH or USDC on Sepolia testnet.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-lg text-[#91AAA0] hover:text-[#F4F1E8] hover:bg-[#10231B] transition-colors"
+            className="p-1.5 rounded-md text-[#7a9187] hover:text-[#F4F1E8] hover:bg-[#152920] transition-colors duration-150"
           >
             <X className="w-4 h-4" />
           </button>
@@ -202,57 +201,57 @@ function ReceiveModal({
 
         {isConnected && address ? (
           <>
-            <div className="rounded-xl bg-[#10231B] border border-[#294438] p-4 space-y-3">
+            <div className="rounded-lg bg-[#071410] border border-[#233a30] p-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <p className="font-mono text-xs text-[#F4F1E8] break-all leading-relaxed select-all">
                   {address}
                 </p>
                 <CopyButton value={address} />
               </div>
-              <div className="flex items-center gap-2 text-[11px] text-[#91AAA0]">
+              <div className="flex items-center gap-2 text-xs text-[#7a9187]">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#6ED6A8] shrink-0" />
-                <span>Sepolia Testnet &middot; Chain ID 11155111</span>
+                <span>Sepolia testnet &middot; Chain ID 11155111</span>
               </div>
             </div>
 
-            <div className="flex items-start gap-2.5 p-3 rounded-xl border border-[#F2C66D]/20 bg-[#F2C66D]/5 text-[11px] text-[#F2C66D]">
+            <div className="flex items-start gap-2.5 p-3 rounded-lg border border-[#F2C66D]/20 bg-[#F2C66D]/5 text-xs text-[#F2C66D]">
               <Info className="w-4 h-4 shrink-0 mt-0.5" />
               <span>
                 Only send Sepolia testnet tokens to this address. Mainnet assets sent here cannot be recovered.
               </span>
             </div>
 
-            <div className="flex items-center gap-3 pt-1">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={handleCopy}
-                className="flex-1 py-2.5 rounded-xl bg-[#1e3d30] hover:bg-[#254d3b] border border-[#294438] text-sm font-semibold text-[#8BE3BB] transition-colors flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 rounded-lg bg-[#152920] hover:bg-[#1e3d30] border border-[#233a30] text-sm font-semibold text-[#8BE3BB] transition-colors duration-150 flex items-center justify-center gap-2"
               >
                 {copied ? (
                   <>
                     <Check className="w-4 h-4 text-[#6ED6A8]" />
-                    <span>Copied!</span>
+                    <span>Copied</span>
                   </>
                 ) : (
                   <>
                     <Copy className="w-4 h-4" />
-                    <span>Copy Address</span>
+                    <span>Copy address</span>
                   </>
                 )}
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 rounded-xl bg-[#10231B] border border-[#294438] text-sm text-[#91AAA0] hover:text-[#F4F1E8] transition-colors"
+                className="px-4 py-2.5 rounded-lg bg-[#071410] border border-[#233a30] text-sm text-[#7a9187] hover:text-[#F4F1E8] transition-colors duration-150"
               >
                 Close
               </button>
             </div>
           </>
         ) : (
-          <div className="p-6 text-center space-y-3 rounded-xl bg-[#10231B] border border-[#294438]">
-            <p className="text-sm font-semibold text-[#F4F1E8]">Wallet Not Connected</p>
-            <p className="text-xs text-[#91AAA0]">
+          <div className="p-6 text-center space-y-3 rounded-lg bg-[#071410] border border-[#233a30]">
+            <p className="text-sm font-semibold text-[#F4F1E8]">Wallet not connected</p>
+            <p className="text-xs text-[#7a9187]">
               Connect your MetaMask wallet to view your receive address and deposit tokens.
             </p>
             <div className="flex items-center gap-2 pt-2">
@@ -262,14 +261,14 @@ function ReceiveModal({
                   onConnectMetaMask?.();
                   onClose();
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-[#1e3d30] hover:bg-[#254d3d] text-xs font-semibold text-[#8BE3BB] border border-[#3b6352] transition-colors cursor-pointer"
+                className="flex-1 py-2.5 rounded-lg bg-[#152920] hover:bg-[#1e3d30] text-xs font-semibold text-[#8BE3BB] border border-[#233a30] transition-colors duration-150 cursor-pointer"
               >
                 Connect MetaMask
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 rounded-xl bg-[#10231B] border border-[#294438] text-xs text-[#91AAA0] hover:text-[#F4F1E8] transition-colors cursor-pointer"
+                className="px-4 py-2.5 rounded-lg bg-[#071410] border border-[#233a30] text-xs text-[#7a9187] hover:text-[#F4F1E8] transition-colors duration-150 cursor-pointer"
               >
                 Dismiss
               </button>
@@ -327,28 +326,28 @@ function AddTokenModal({
       onClick={onClose}
     >
       <div
-        className="bg-[#183126] border border-[#294438] rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150"
+        className="bg-[#0d1e17] border border-[#233a30] rounded-xl p-6 w-full max-w-md shadow-lg space-y-5 animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-[#F4F1E8]">Import Custom Token</h3>
-            <p className="text-xs text-[#91AAA0] mt-0.5">
+            <h3 className="text-base font-bold text-[#F4F1E8]">Import custom token</h3>
+            <p className="text-xs text-[#7a9187] mt-0.5">
               Add any ERC-20 token on Sepolia testnet to track its balance.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-lg text-[#91AAA0] hover:text-[#F4F1E8] hover:bg-[#10231B] transition-colors"
+            className="p-1.5 rounded-md text-[#7a9187] hover:text-[#F4F1E8] hover:bg-[#152920] transition-colors duration-150"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <div>
-          <p className="text-[11px] font-semibold text-[#91AAA0] uppercase tracking-wider mb-2">
-            Popular Sepolia Tokens
+          <p className="text-xs font-medium text-[#7a9187] mb-2">
+            Popular Sepolia tokens
           </p>
           <div className="grid grid-cols-3 gap-2">
             {quickTokens.map((t) => (
@@ -362,12 +361,12 @@ function AddTokenModal({
                   setDecimals(t.decimals.toString());
                   setError('');
                 }}
-                className="p-2.5 rounded-xl bg-[#10231B] border border-[#294438] hover:border-[#8BE3BB]/50 text-left transition-colors group"
+                className="p-2.5 rounded-lg bg-[#071410] border border-[#233a30] hover:border-[#8BE3BB]/40 text-left transition-colors duration-150 group"
               >
-                <p className="text-xs font-bold text-[#F4F1E8] group-hover:text-[#8BE3BB]">
+                <p className="text-xs font-bold text-[#F4F1E8] group-hover:text-[#8BE3BB] transition-colors duration-150">
                   {t.symbol}
                 </p>
-                <p className="text-[10px] text-[#91AAA0] truncate">{t.name}</p>
+                <p className="text-xs text-[#7a9187] truncate mt-0.5">{t.name}</p>
               </button>
             ))}
           </div>
@@ -375,8 +374,8 @@ function AddTokenModal({
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <div>
-            <label className="block text-xs font-medium text-[#91AAA0] mb-1">
-              Token Contract Address
+            <label className="block text-xs font-medium text-[#7a9187] mb-1">
+              Token contract address
             </label>
             <input
               type="text"
@@ -386,25 +385,25 @@ function AddTokenModal({
                 setContractAddress(e.target.value);
                 setError('');
               }}
-              className="w-full px-3 py-2 rounded-xl bg-[#10231B] border border-[#294438] text-xs font-mono text-[#F4F1E8] placeholder-[#91AAA0]/50 focus:outline-none focus:border-[#8BE3BB]"
+              className="w-full px-3 py-2 rounded-lg bg-[#071410] border border-[#233a30] text-xs font-mono text-[#F4F1E8] placeholder-[#7a9187]/50 focus:outline-none focus:border-[#8BE3BB]/60 transition-colors duration-150"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[#91AAA0] mb-1">
-                Token Symbol
+              <label className="block text-xs font-medium text-[#7a9187] mb-1">
+                Token symbol
               </label>
               <input
                 type="text"
                 placeholder="e.g. DAI"
                 value={tokenSymbol}
                 onChange={(e) => setTokenSymbol(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-[#10231B] border border-[#294438] text-xs font-mono text-[#F4F1E8] placeholder-[#91AAA0]/50 focus:outline-none focus:border-[#8BE3BB]"
+                className="w-full px-3 py-2 rounded-lg bg-[#071410] border border-[#233a30] text-xs font-mono text-[#F4F1E8] placeholder-[#7a9187]/50 focus:outline-none focus:border-[#8BE3BB]/60 transition-colors duration-150"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#91AAA0] mb-1">
+              <label className="block text-xs font-medium text-[#7a9187] mb-1">
                 Decimals
               </label>
               <input
@@ -412,24 +411,24 @@ function AddTokenModal({
                 placeholder="18"
                 value={decimals}
                 onChange={(e) => setDecimals(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-[#10231B] border border-[#294438] text-xs font-mono text-[#F4F1E8] placeholder-[#91AAA0]/50 focus:outline-none focus:border-[#8BE3BB]"
+                className="w-full px-3 py-2 rounded-lg bg-[#071410] border border-[#233a30] text-xs font-mono text-[#F4F1E8] placeholder-[#7a9187]/50 focus:outline-none focus:border-[#8BE3BB]/60 transition-colors duration-150"
               />
             </div>
           </div>
 
-          {error && <p className="text-xs text-[#FF8585]">{error}</p>}
+          {error && <p className="text-xs text-[#e57373]">{error}</p>}
 
           <div className="flex items-center gap-3 pt-2">
             <button
               type="submit"
-              className="flex-1 py-2.5 rounded-xl bg-[#8BE3BB] hover:bg-[#72caa3] text-sm font-semibold text-[#071410] transition-colors"
+              className="flex-1 py-2.5 rounded-lg bg-[#152920] hover:bg-[#1e3d30] border border-[#233a30] text-sm font-semibold text-[#8BE3BB] transition-colors duration-150"
             >
-              Add Token
+              Add token
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl bg-[#10231B] border border-[#294438] text-sm text-[#91AAA0] hover:text-[#F4F1E8] transition-colors"
+              className="px-4 py-2.5 rounded-lg bg-[#071410] border border-[#233a30] text-sm text-[#7a9187] hover:text-[#F4F1E8] transition-colors duration-150"
             >
               Cancel
             </button>
@@ -471,7 +470,7 @@ function AssetActionMenu({
       <button
         type="button"
         onClick={() => setOpen((p) => !p)}
-        className="p-1.5 rounded-lg bg-[#10231B] border border-[#294438] text-[#91AAA0] hover:text-[#F4F1E8] hover:border-[#8BE3BB]/40 transition-colors"
+        className="p-1.5 rounded-md bg-[#071410] border border-[#233a30] text-[#7a9187] hover:text-[#F4F1E8] hover:border-[#8BE3BB]/35 transition-colors duration-150"
         title="More actions"
         aria-label="More options"
       >
@@ -479,25 +478,19 @@ function AssetActionMenu({
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-1.5 w-44 rounded-xl bg-[#183126] border border-[#294438] p-1.5 shadow-xl z-50 text-xs space-y-0.5 animate-in fade-in duration-100">
+        <div className="absolute right-0 mt-1.5 w-44 rounded-lg bg-[#0d1e17] border border-[#233a30] p-1 shadow-lg z-50 text-xs space-y-0.5 animate-in fade-in duration-100">
           <button
             type="button"
-            onClick={() => {
-              setOpen(false);
-              onSend();
-            }}
-            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-[#F4F1E8] hover:bg-[#10231B] hover:text-[#8BE3BB] transition-colors"
+            onClick={() => { setOpen(false); onSend(); }}
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[#F4F1E8] hover:bg-[#152920] hover:text-[#8BE3BB] transition-colors duration-150"
           >
             <Send className="w-3.5 h-3.5 text-[#8BE3BB]" />
             <span>Send {symbol}</span>
           </button>
           <button
             type="button"
-            onClick={() => {
-              setOpen(false);
-              onReceive();
-            }}
-            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-[#F4F1E8] hover:bg-[#10231B] hover:text-[#8BE3BB] transition-colors"
+            onClick={() => { setOpen(false); onReceive(); }}
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[#F4F1E8] hover:bg-[#152920] hover:text-[#8BE3BB] transition-colors duration-150"
           >
             <ArrowDown className="w-3.5 h-3.5 text-[#8BE3BB]" />
             <span>Receive {symbol}</span>
@@ -508,7 +501,7 @@ function AssetActionMenu({
               target="_blank"
               rel="noreferrer"
               onClick={() => setOpen(false)}
-              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left text-[#91AAA0] hover:bg-[#10231B] hover:text-[#F4F1E8] transition-colors"
+              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-[#7a9187] hover:bg-[#152920] hover:text-[#F4F1E8] transition-colors duration-150"
             >
               <span>View on Etherscan</span>
               <ExternalLink className="w-3 h-3" />
@@ -535,7 +528,6 @@ export function WalletView({
       window.open('https://metamask.io/download/', '_blank');
       return;
     }
-
     const target =
       connectors.find((c) => c.id === 'io.metamask' || c.id === 'io.metamask.mobile') ||
       connectors.find((c) => c.id === 'metaMask' && c.type === 'injected') ||
@@ -543,7 +535,6 @@ export function WalletView({
       connectors.find((c) => c.id === 'injected') ||
       connectors.find((c) => c.name.toLowerCase().includes('metamask')) ||
       connectors[0];
-
     if (target) {
       connect({ connector: target });
     } else if (typeof window !== 'undefined' && (window as any).ethereum) {
@@ -563,7 +554,6 @@ export function WalletView({
   const [addTokenOpen, setAddTokenOpen] = useState(false);
   const [customTokens, setCustomTokens] = useState<CustomToken[]>([]);
 
-  // Connection timestamp
   const [connectedTimeStr, setConnectedTimeStr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -583,7 +573,6 @@ export function WalletView({
     }
   }, [isConnected]);
 
-  // Handle clicking outside currency dropdown
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (currencyMenuRef.current && !currencyMenuRef.current.contains(e.target as Node)) {
@@ -614,13 +603,11 @@ export function WalletView({
     }
   }, [gasPriceWei]);
 
-  // Real market rates from oracle / CoinGecko
   const ethPriceInr = marketData?.ethereum?.inr ?? marketData?.inr ?? 230000;
   const ethPriceUsd = marketData?.ethereum?.usd ?? 2400;
   const usdcPriceInr = marketData?.usdc?.inr ?? marketData?.fiatReference?.inrPerUsd ?? 94.88;
   const usdcPriceUsd = marketData?.usdc?.usd ?? 1.0;
 
-  // 100% Real honest data calculations - zero mock data
   const isWalletConnected = Boolean(isConnected && address);
 
   const ethAmount = isWalletConnected ? (parseFloat(ethFormatted) || 0) : 0;
@@ -635,7 +622,6 @@ export function WalletView({
   const usdcValueUsd = usdcAmount * usdcPriceUsd;
   const totalUsd = ethValueUsd + usdcValueUsd;
 
-  // Real transactions from database/API only - zero mock data
   const { data: transfers, isLoading: isTxLoading, error: txError } = useQuery<TransferRecord[]>({
     queryKey: ['transfers', address],
     queryFn: () => fetchTransfers(address),
@@ -661,69 +647,72 @@ export function WalletView({
   const mask = (v: string) =>
     v.replace(/[\d,.]/g, (c) => (c === ',' || c === '.' ? c : '\u2022'));
 
-  // Display value calculation based on selected currency
-  let formattedTotalMain = isWalletConnected ? formatFiatINR(totalInr) : '₹0.00';
+  let formattedTotalMain = isWalletConnected ? formatFiatINR(totalInr) : '\u20b90.00';
   let formattedTotalSub = isWalletConnected
-    ? `≈ ${totalEthEquivalent.toFixed(4)} ETH`
+    ? `\u2248 ${totalEthEquivalent.toFixed(4)} ETH`
     : 'Connect wallet to view balances';
 
   if (currencyUnit === 'USD') {
     formattedTotalMain = isWalletConnected ? formatFiatUSD(totalUsd) : '$0.00';
     formattedTotalSub = isWalletConnected
-      ? `≈ ${totalEthEquivalent.toFixed(4)} ETH`
+      ? `\u2248 ${totalEthEquivalent.toFixed(4)} ETH`
       : 'Connect wallet to view balances';
   } else if (currencyUnit === 'ETH') {
     formattedTotalMain = isWalletConnected ? `${totalEthEquivalent.toFixed(4)} ETH` : '0.0000 ETH';
     formattedTotalSub = isWalletConnected
-      ? `≈ ${formatFiatINR(totalInr)}`
+      ? `\u2248 ${formatFiatINR(totalInr)}`
       : 'Connect wallet to view balances';
   }
 
+  /* ── Shared class tokens ── */
+  const cardCls = 'rounded-xl bg-[#0d1e17] border border-[#233a30]';
+  const innerCls = 'rounded-lg bg-[#071410] border border-[#233a30]';
+  const actionCardCls = `${cardCls} p-4 flex flex-col items-center justify-center text-center gap-2 hover:bg-[#152920] transition-colors duration-150 group cursor-pointer`;
+
   return (
     <>
-      <div className="pt-6 space-y-6 animate-in fade-in duration-150">
-        {/* ── TOP ROW: FULL WIDTH (Total Balance + 4 Action Cards) ── */}
+      <div className="pt-6 space-y-5 animate-in fade-in duration-150">
+
+        {/* ── TOP ROW: Total Balance + 4 Action Cards ── */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
-          {/* Total Balance Card (md:col-span-5) */}
-          <div className="md:col-span-5 rounded-2xl bg-[#183126] border border-[#294438] p-5 flex flex-col justify-between shadow-sm">
+
+          {/* Total Balance */}
+          <div className={`md:col-span-5 ${cardCls} p-5 flex flex-col justify-between`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-[#91AAA0]">Total Balance</span>
+                <span className="text-xs font-medium text-[#7a9187]">Total balance</span>
                 <button
                   type="button"
                   onClick={() => setHiddenBalance((p) => !p)}
-                  className="text-[#91AAA0] hover:text-[#8BE3BB] transition-colors"
+                  className="text-[#7a9187] hover:text-[#8BE3BB] transition-colors duration-150"
                   aria-label={hiddenBalance ? 'Show balance' : 'Hide balance'}
                 >
                   {hiddenBalance ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
               </div>
 
-              {/* Currency Dropdown Selector */}
+              {/* Currency selector */}
               <div className="relative" ref={currencyMenuRef}>
                 <button
                   type="button"
                   onClick={() => setCurrencyDropdownOpen((p) => !p)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#10231B] border border-[#294438] text-xs font-semibold text-[#F4F1E8] hover:border-[#8BE3BB]/50 transition-colors"
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${innerCls} text-xs font-semibold text-[#F4F1E8] hover:border-[#8BE3BB]/40 transition-colors duration-150`}
                 >
                   <span>{currencyUnit}</span>
-                  <ChevronDown className="w-3 h-3 text-[#91AAA0]" />
+                  <ChevronDown className="w-3 h-3 text-[#7a9187]" />
                 </button>
 
                 {currencyDropdownOpen && (
-                  <div className="absolute right-0 mt-1 w-24 rounded-xl bg-[#10231B] border border-[#294438] p-1 shadow-xl z-30 text-xs">
+                  <div className={`absolute right-0 mt-1.5 w-24 rounded-lg ${innerCls} p-1 shadow-lg z-30 text-xs`}>
                     {(['INR', 'USD', 'ETH'] as CurrencyUnit[]).map((unit) => (
                       <button
                         key={unit}
                         type="button"
-                        onClick={() => {
-                          setCurrencyUnit(unit);
-                          setCurrencyDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        onClick={() => { setCurrencyUnit(unit); setCurrencyDropdownOpen(false); }}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors duration-150 ${
                           currencyUnit === unit
-                            ? 'text-[#8BE3BB] bg-[#183126] font-bold'
-                            : 'text-[#F4F1E8] hover:bg-[#183126]'
+                            ? 'text-[#8BE3BB] bg-[#152920] font-bold'
+                            : 'text-[#F4F1E8] hover:bg-[#152920]'
                         }`}
                       >
                         {unit}
@@ -734,145 +723,118 @@ export function WalletView({
               </div>
             </div>
 
-            <div className="mt-3">
-              <p className="text-2xl sm:text-3xl font-extrabold text-[#F4F1E8] tracking-tight font-mono tabular-nums">
+            <div className="mt-4">
+              <p className="text-2xl sm:text-3xl font-bold text-[#F4F1E8] font-mono tabular-nums">
                 {hiddenBalance ? mask(formattedTotalMain) : formattedTotalMain}
               </p>
-              <p className="text-xs text-[#91AAA0] font-mono mt-1">
+              <p className="text-xs text-[#7a9187] font-mono tabular-nums mt-1">
                 {hiddenBalance ? '\u2248 \u2022\u2022\u2022\u2022' : formattedTotalSub}
               </p>
             </div>
           </div>
 
-          {/* 4 Action Cards Row (md:col-span-7) */}
+          {/* 4 Action Cards */}
           <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {/* 1. Receive */}
-            <button
-              type="button"
-              onClick={() => setReceiveOpen(true)}
-              className="rounded-2xl bg-[#183126] border border-[#294438] p-4 flex flex-col items-center justify-center text-center gap-2 hover:border-[#8BE3BB]/40 hover:bg-[#1c382b] transition-all group shadow-sm"
-            >
-              <div className="w-9 h-9 rounded-full bg-[#10231B] border border-[#294438] flex items-center justify-center group-hover:border-[#8BE3BB]/40 group-hover:scale-105 transition-all text-[#8BE3BB]">
+            <button type="button" onClick={() => setReceiveOpen(true)} className={actionCardCls}>
+              <div className={`w-9 h-9 rounded-lg ${innerCls} flex items-center justify-center group-hover:border-[#8BE3BB]/35 transition-colors duration-150 text-[#8BE3BB]`}>
                 <ArrowDown className="w-4 h-4" />
               </div>
               <p className="text-sm font-bold text-[#F4F1E8]">Receive</p>
-              <p className="text-[11px] text-[#91AAA0] leading-tight text-center">
-                Get assets to your wallet
-              </p>
+              <p className="text-xs text-[#7a9187] leading-tight">Get assets to wallet</p>
             </button>
 
-            {/* 2. Send */}
-            <button
-              type="button"
-              onClick={() => onNavigateToSend?.()}
-              className="rounded-2xl bg-[#183126] border border-[#294438] p-4 flex flex-col items-center justify-center text-center gap-2 hover:border-[#8BE3BB]/40 hover:bg-[#1c382b] transition-all group shadow-sm"
-            >
-              <div className="w-9 h-9 rounded-full bg-[#10231B] border border-[#294438] flex items-center justify-center group-hover:border-[#8BE3BB]/40 group-hover:scale-105 transition-all text-[#8BE3BB]">
+            <button type="button" onClick={() => onNavigateToSend?.()} className={actionCardCls}>
+              <div className={`w-9 h-9 rounded-lg ${innerCls} flex items-center justify-center group-hover:border-[#8BE3BB]/35 transition-colors duration-150 text-[#8BE3BB]`}>
                 <ArrowUp className="w-4 h-4" />
               </div>
               <p className="text-sm font-bold text-[#F4F1E8]">Send</p>
-              <p className="text-[11px] text-[#91AAA0] leading-tight text-center">
-                Transfer to another wallet
-              </p>
+              <p className="text-xs text-[#7a9187] leading-tight">Transfer to another wallet</p>
             </button>
 
-            {/* 3. Swap */}
-            <button
-              type="button"
-              onClick={() => onNavigateToExchange?.()}
-              className="rounded-2xl bg-[#183126] border border-[#294438] p-4 flex flex-col items-center justify-center text-center gap-2 hover:border-[#8BE3BB]/40 hover:bg-[#1c382b] transition-all group shadow-sm"
-            >
-              <div className="w-9 h-9 rounded-full bg-[#10231B] border border-[#294438] flex items-center justify-center group-hover:border-[#8BE3BB]/40 group-hover:scale-105 transition-all text-[#8BE3BB]">
+            <button type="button" onClick={() => onNavigateToExchange?.()} className={actionCardCls}>
+              <div className={`w-9 h-9 rounded-lg ${innerCls} flex items-center justify-center group-hover:border-[#8BE3BB]/35 transition-colors duration-150 text-[#8BE3BB]`}>
                 <ArrowLeftRight className="w-4 h-4" />
               </div>
               <p className="text-sm font-bold text-[#F4F1E8]">Swap</p>
-              <p className="text-[11px] text-[#91AAA0] leading-tight text-center">
-                Exchange between assets
-              </p>
+              <p className="text-xs text-[#7a9187] leading-tight">Exchange between assets</p>
             </button>
 
-            {/* 4. Add Asset */}
-            <button
-              type="button"
-              onClick={() => setAddTokenOpen(true)}
-              className="rounded-2xl bg-[#183126] border border-[#294438] p-4 flex flex-col items-center justify-center text-center gap-2 hover:border-[#8BE3BB]/40 hover:bg-[#1c382b] transition-all group shadow-sm"
-            >
-              <div className="w-9 h-9 rounded-full bg-[#10231B] border border-[#294438] flex items-center justify-center group-hover:border-[#8BE3BB]/40 group-hover:scale-105 transition-all text-[#8BE3BB]">
+            <button type="button" onClick={() => setAddTokenOpen(true)} className={actionCardCls}>
+              <div className={`w-9 h-9 rounded-lg ${innerCls} flex items-center justify-center group-hover:border-[#8BE3BB]/35 transition-colors duration-150 text-[#8BE3BB]`}>
                 <Plus className="w-4 h-4" />
               </div>
-              <p className="text-sm font-bold text-[#F4F1E8]">Add Asset</p>
-              <p className="text-[11px] text-[#91AAA0] leading-tight text-center">
-                Manage tokens
-              </p>
+              <p className="text-sm font-bold text-[#F4F1E8]">Add asset</p>
+              <p className="text-xs text-[#7a9187] leading-tight">Manage tokens</p>
             </button>
           </div>
         </div>
 
-        {/* ── TWO COLUMN MAIN BODY (Left 62%, Right 38%) ── */}
+        {/* ── TWO-COLUMN BODY ── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-          {/* ── LEFT COLUMN: Assets & Recent Transactions (lg:col-span-7) ── */}
+
+          {/* LEFT: Assets + Recent Transactions */}
           <div className="lg:col-span-7 space-y-5">
-            {/* Card 1: Assets */}
-            <div className="rounded-2xl bg-[#183126] border border-[#294438] shadow-sm overflow-hidden">
+
+            {/* Assets card */}
+            <div className={`${cardCls} overflow-hidden`}>
               <div className="flex items-center justify-between px-5 pt-5 pb-3">
                 <div>
                   <h3 className="text-base font-bold text-[#F4F1E8]">Assets</h3>
-                  <p className="text-xs text-[#91AAA0] mt-0.5">
-                    Your token balances on Sepolia testnet.
-                  </p>
+                  <p className="text-xs text-[#7a9187] mt-0.5">Token balances on Sepolia testnet.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setAddTokenOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#10231B] border border-[#294438] text-xs font-semibold text-[#F4F1E8] hover:border-[#8BE3BB]/50 transition-colors"
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${innerCls} text-xs font-semibold text-[#F4F1E8] hover:border-[#8BE3BB]/40 transition-colors duration-150`}
                 >
                   <Plus className="w-3.5 h-3.5 text-[#8BE3BB]" />
-                  <span>Add Token</span>
+                  <span>Add token</span>
                 </button>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="border-t border-[#294438]/80 text-[11px] font-semibold text-[#91AAA0]">
+                    <tr className="border-t border-[#233a30]/80 text-xs font-medium text-[#7a9187]">
                       <th className="px-5 py-2.5 font-medium">Asset</th>
                       <th className="px-3 py-2.5 font-medium">Balance</th>
                       <th className="px-3 py-2.5 font-medium">Value (INR)</th>
                       <th className="px-5 py-2.5 font-medium text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#294438]/40">
-                    {/* ETH */}
-                    <tr className="hover:bg-[#10231B]/40 transition-colors">
+                  <tbody className="divide-y divide-[#233a30]/40">
+
+                    {/* ETH row */}
+                    <tr className="hover:bg-[#071410]/60 transition-colors duration-150">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <EthereumIcon className="w-8 h-8 shrink-0" />
                           <div>
                             <p className="font-semibold text-[#F4F1E8] text-xs">Ethereum</p>
-                            <p className="text-[11px] text-[#91AAA0] font-mono mt-0.5">ETH</p>
+                            <p className="text-xs text-[#7a9187] font-mono mt-0.5">ETH</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-3 py-3.5">
                         {isWalletConnected && isEthLoading ? (
                           <div className="space-y-1.5">
-                            <div className="animate-pulse h-3.5 w-16 rounded bg-[#10231B]" />
-                            <div className="animate-pulse h-3 w-12 rounded bg-[#10231B]" />
+                            <div className="h-3.5 w-16 rounded-md bg-[#152920]" />
+                            <div className="h-3 w-12 rounded-md bg-[#152920]" />
                           </div>
                         ) : (
                           <div>
                             <p className="font-mono font-bold text-[#F4F1E8] tabular-nums text-xs">
                               {hiddenBalance ? '\u2022\u2022\u2022\u2022' : isWalletConnected ? ethFormatted : '0.0000'}
                             </p>
-                            <p className="text-[11px] text-[#91AAA0] font-mono mt-0.5">
-                              {hiddenBalance ? '' : isWalletConnected ? `\u2248 ${formatFiatINR(ethValueInr)}` : '≈ ₹0.00'}
+                            <p className="text-xs text-[#7a9187] font-mono mt-0.5 tabular-nums">
+                              {hiddenBalance ? '' : isWalletConnected ? `\u2248 ${formatFiatINR(ethValueInr)}` : '\u2248 \u20b90.00'}
                             </p>
                           </div>
                         )}
                       </td>
                       <td className="px-3 py-3.5">
                         <p className="font-mono font-semibold text-[#F4F1E8] tabular-nums text-xs">
-                          {hiddenBalance ? '\u2022\u2022\u2022\u2022\u2022' : isWalletConnected ? formatFiatINR(ethValueInr) : '₹0.00'}
+                          {hiddenBalance ? '\u2022\u2022\u2022\u2022\u2022' : isWalletConnected ? formatFiatINR(ethValueInr) : '\u20b90.00'}
                         </p>
                       </td>
                       <td className="px-5 py-3.5 text-right">
@@ -880,9 +842,9 @@ export function WalletView({
                           <button
                             type="button"
                             onClick={() => onNavigateToSend?.('ETH')}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#10231B] border border-[#294438] text-xs font-semibold text-[#F4F1E8] hover:border-[#8BE3BB]/50 hover:text-[#8BE3BB] transition-colors"
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${innerCls} text-xs font-semibold text-[#F4F1E8] hover:border-[#8BE3BB]/40 hover:text-[#8BE3BB] transition-colors duration-150`}
                           >
-                            <span className="text-xs">₹</span>
+                            <span className="text-xs">\u20b9</span>
                             <span>Send</span>
                           </button>
                           <AssetActionMenu
@@ -894,22 +856,22 @@ export function WalletView({
                       </td>
                     </tr>
 
-                    {/* USDC */}
-                    <tr className="hover:bg-[#10231B]/40 transition-colors">
+                    {/* USDC row */}
+                    <tr className="hover:bg-[#071410]/60 transition-colors duration-150">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <UsdcIcon className="w-8 h-8 shrink-0" />
                           <div>
                             <p className="font-semibold text-[#F4F1E8] text-xs">USD Coin</p>
-                            <p className="text-[11px] text-[#91AAA0] font-mono mt-0.5">USDC</p>
+                            <p className="text-xs text-[#7a9187] font-mono mt-0.5">USDC</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-3 py-3.5">
                         {isWalletConnected && isUsdcLoading ? (
                           <div className="space-y-1.5">
-                            <div className="animate-pulse h-3.5 w-16 rounded bg-[#10231B]" />
-                            <div className="animate-pulse h-3 w-12 rounded bg-[#10231B]" />
+                            <div className="h-3.5 w-16 rounded-md bg-[#152920]" />
+                            <div className="h-3 w-12 rounded-md bg-[#152920]" />
                           </div>
                         ) : (
                           <div>
@@ -920,15 +882,15 @@ export function WalletView({
                                 ? (parseFloat(usdcFormatted) ? parseFloat(usdcFormatted).toFixed(2) : '0.00')
                                 : '0.00'}
                             </p>
-                            <p className="text-[11px] text-[#91AAA0] font-mono mt-0.5">
-                              {hiddenBalance ? '' : isWalletConnected ? `\u2248 ${formatFiatINR(usdcValueInr)}` : '≈ ₹0.00'}
+                            <p className="text-xs text-[#7a9187] font-mono mt-0.5 tabular-nums">
+                              {hiddenBalance ? '' : isWalletConnected ? `\u2248 ${formatFiatINR(usdcValueInr)}` : '\u2248 \u20b90.00'}
                             </p>
                           </div>
                         )}
                       </td>
                       <td className="px-3 py-3.5">
                         <p className="font-mono font-semibold text-[#F4F1E8] tabular-nums text-xs">
-                          {hiddenBalance ? '\u2022\u2022\u2022\u2022\u2022' : isWalletConnected ? formatFiatINR(usdcValueInr) : '₹0.00'}
+                          {hiddenBalance ? '\u2022\u2022\u2022\u2022\u2022' : isWalletConnected ? formatFiatINR(usdcValueInr) : '\u20b90.00'}
                         </p>
                       </td>
                       <td className="px-5 py-3.5 text-right">
@@ -936,9 +898,9 @@ export function WalletView({
                           <button
                             type="button"
                             onClick={() => onNavigateToSend?.('USDC')}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#10231B] border border-[#294438] text-xs font-semibold text-[#F4F1E8] hover:border-[#8BE3BB]/50 hover:text-[#8BE3BB] transition-colors"
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${innerCls} text-xs font-semibold text-[#F4F1E8] hover:border-[#8BE3BB]/40 hover:text-[#8BE3BB] transition-colors duration-150`}
                           >
-                            <span className="text-xs">₹</span>
+                            <span className="text-xs">\u20b9</span>
                             <span>Send</span>
                           </button>
                           <AssetActionMenu
@@ -951,42 +913,34 @@ export function WalletView({
                       </td>
                     </tr>
 
-                    {/* Custom added tokens if any */}
+                    {/* Custom tokens */}
                     {customTokens.map((t) => (
-                      <tr key={t.symbol} className="hover:bg-[#10231B]/40 transition-colors">
+                      <tr key={t.symbol} className="hover:bg-[#071410]/60 transition-colors duration-150">
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#10231B] border border-[#294438] flex items-center justify-center font-bold text-[#8BE3BB] text-xs">
+                            <div className={`w-8 h-8 rounded-lg ${innerCls} flex items-center justify-center font-bold text-[#8BE3BB] text-xs`}>
                               {t.symbol.slice(0, 2)}
                             </div>
                             <div>
                               <p className="font-semibold text-[#F4F1E8] text-xs">{t.name}</p>
-                              <p className="text-[11px] text-[#91AAA0] font-mono mt-0.5">{t.symbol}</p>
+                              <p className="text-xs text-[#7a9187] font-mono mt-0.5">{t.symbol}</p>
                             </div>
                           </div>
                         </td>
                         <td className="px-3 py-3.5">
-                          <p className="font-mono font-bold text-[#F4F1E8] tabular-nums text-xs">
-                            {t.balance}
-                          </p>
-                          <p className="text-[11px] text-[#91AAA0] font-mono mt-0.5">
-                            &asymp; &mdash;
-                          </p>
+                          <p className="font-mono font-bold text-[#F4F1E8] tabular-nums text-xs">{t.balance}</p>
+                          <p className="text-xs text-[#7a9187] font-mono mt-0.5">&asymp; &mdash;</p>
                         </td>
                         <td className="px-3 py-3.5">
-                          <p className="font-mono font-semibold text-[#F4F1E8] tabular-nums text-xs">
-                            &mdash;
-                          </p>
+                          <p className="font-mono font-semibold text-[#F4F1E8] tabular-nums text-xs">&mdash;</p>
                         </td>
                         <td className="px-5 py-3.5 text-right">
-                          <div className="inline-flex items-center gap-2">
-                            <AssetActionMenu
-                              symbol={t.symbol}
-                              address={t.address}
-                              onSend={() => onNavigateToSend?.()}
-                              onReceive={() => setReceiveOpen(true)}
-                            />
-                          </div>
+                          <AssetActionMenu
+                            symbol={t.symbol}
+                            address={t.address}
+                            onSend={() => onNavigateToSend?.()}
+                            onReceive={() => setReceiveOpen(true)}
+                          />
                         </td>
                       </tr>
                     ))}
@@ -994,42 +948,39 @@ export function WalletView({
                 </table>
               </div>
 
-              {/* Add Token Row at the bottom */}
+              {/* Add token row */}
               <button
                 type="button"
                 onClick={() => setAddTokenOpen(true)}
-                className="w-full flex items-center justify-between px-5 py-3.5 border-t border-[#294438]/60 hover:bg-[#10231B]/60 transition-colors group"
+                className="w-full flex items-center justify-between px-5 py-3.5 border-t border-[#233a30]/60 hover:bg-[#071410]/60 transition-colors duration-150 group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#10231B] border border-[#294438] flex items-center justify-center text-[#8BE3BB] group-hover:border-[#8BE3BB]/50 transition-colors">
+                  <div className={`w-8 h-8 rounded-lg ${innerCls} flex items-center justify-center text-[#8BE3BB] group-hover:border-[#8BE3BB]/40 transition-colors duration-150`}>
                     <Plus className="w-4 h-4" />
                   </div>
                   <div className="text-left">
-                    <p className="text-xs font-semibold text-[#F4F1E8] group-hover:text-[#8BE3BB] transition-colors">
-                      Add Token
-                    </p>
-                    <p className="text-[11px] text-[#91AAA0]">Import or manage custom tokens</p>
+                    <p className="text-xs font-semibold text-[#F4F1E8] group-hover:text-[#8BE3BB] transition-colors duration-150">Add token</p>
+                    <p className="text-xs text-[#7a9187]">Import or manage custom tokens</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#91AAA0] group-hover:text-[#8BE3BB] transition-colors" />
+                <ChevronRight className="w-4 h-4 text-[#7a9187] group-hover:text-[#8BE3BB] transition-colors duration-150" />
               </button>
             </div>
 
-            {/* Card 2: Recent Transactions (Real Database Records Only) */}
-            <div className="rounded-2xl bg-[#183126] border border-[#294438] shadow-sm overflow-hidden">
+            {/* Recent Transactions card */}
+            <div className={`${cardCls} overflow-hidden`}>
               <div className="flex items-center justify-between px-5 pt-5 pb-3">
                 <div>
-                  <h3 className="text-base font-bold text-[#F4F1E8]">Recent Transactions</h3>
-                  <p className="text-xs text-[#91AAA0] mt-0.5">Your latest wallet activity.</p>
+                  <h3 className="text-base font-bold text-[#F4F1E8]">Recent transactions</h3>
+                  <p className="text-xs text-[#7a9187] mt-0.5">Your latest wallet activity.</p>
                 </div>
                 {onNavigateToActivity && (
                   <button
                     type="button"
                     onClick={onNavigateToActivity}
-                    className="flex items-center gap-1 text-xs font-semibold text-[#8BE3BB] hover:underline transition-colors"
+                    className="text-xs font-semibold text-[#8BE3BB] hover:underline transition-colors duration-150"
                   >
-                    <span>View all</span>
-                    <span>&rarr;</span>
+                    View all
                   </button>
                 )}
               </div>
@@ -1037,27 +988,27 @@ export function WalletView({
               {isTxLoading && (
                 <div className="px-5 pb-5 space-y-2">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="animate-pulse h-12 rounded-xl bg-[#10231B] border border-[#294438]/40" />
+                    <div key={i} className={`h-12 rounded-lg ${innerCls} opacity-60`} />
                   ))}
                 </div>
               )}
 
               {txError && (
-                <div className="mx-5 mb-5 p-4 rounded-xl bg-[#FF8585]/10 border border-[#FF8585]/30 text-xs text-[#FF8585]">
+                <div className="mx-5 mb-5 p-4 rounded-lg bg-[#e57373]/10 border border-[#e57373]/25 text-xs text-[#e57373]">
                   Failed to load transactions.
                 </div>
               )}
 
               {!isTxLoading && !txError && recentList.length === 0 && (
                 <div className="px-5 pb-5">
-                  <div className="p-8 text-center space-y-2 rounded-xl bg-[#10231B]/40 border border-[#294438]/50">
-                    <div className="w-9 h-9 rounded-full bg-[#10231B] border border-[#294438] flex items-center justify-center mx-auto text-[#91AAA0]">
+                  <div className={`p-8 text-center space-y-2 rounded-lg ${innerCls}`}>
+                    <div className={`w-9 h-9 rounded-lg ${innerCls} flex items-center justify-center mx-auto text-[#7a9187]`}>
                       <Clock className="w-4 h-4" />
                     </div>
                     <p className="text-sm font-semibold text-[#F4F1E8]">No transactions yet</p>
-                    <p className="text-xs text-[#91AAA0] max-w-xs mx-auto">
+                    <p className="text-xs text-[#7a9187] max-w-xs mx-auto">
                       {isWalletConnected
-                        ? "You haven't made any testnet transfers yet. Use Send Money to make your first transfer."
+                        ? "You haven\u2019t made any testnet transfers yet. Use Send money to make your first transfer."
                         : "Connect your wallet and complete a transfer to see your activity here."}
                     </p>
                   </div>
@@ -1068,7 +1019,7 @@ export function WalletView({
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="border-t border-[#294438]/80 text-[11px] font-semibold text-[#91AAA0]">
+                      <tr className="border-t border-[#233a30]/80 text-xs font-medium text-[#7a9187]">
                         <th className="px-5 py-2.5 font-medium">Type</th>
                         <th className="px-3 py-2.5 font-medium">Asset</th>
                         <th className="px-3 py-2.5 font-medium">Amount</th>
@@ -1077,7 +1028,7 @@ export function WalletView({
                         <th className="px-5 py-2.5 font-medium text-right sr-only">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#294438]/40">
+                    <tbody className="divide-y divide-[#233a30]/40">
                       {recentList.map((tx, idx) => {
                         const isEth = tx.assetSymbol === 'ETH';
                         const isSend = !address || tx.senderAddress?.toLowerCase() === address.toLowerCase();
@@ -1088,59 +1039,40 @@ export function WalletView({
                           <tr
                             key={tx.id || idx}
                             onClick={() => onNavigateToActivity?.()}
-                            className="hover:bg-[#10231B]/40 transition-colors cursor-pointer group"
+                            className="hover:bg-[#071410]/60 transition-colors duration-150 cursor-pointer group"
                           >
                             <td className="px-5 py-3">
                               <div
-                                className={`w-7 h-7 rounded-full border flex items-center justify-center shrink-0 ${
+                                className={`w-7 h-7 rounded-md border flex items-center justify-center shrink-0 ${
                                   isSend
-                                    ? 'bg-[#122c22] border-[#254d3b] text-[#6ED6A8]'
-                                    : 'bg-[#331a1a] border-[#592626] text-[#FF8585]'
+                                    ? 'bg-[#0d1e17] border-[#233a30] text-[#6ED6A8]'
+                                    : 'bg-[#1a0f0f] border-[#3d1f1f] text-[#e57373]'
                                 }`}
                               >
-                                {isSend ? (
-                                  <ArrowUp className="w-3.5 h-3.5" />
-                                ) : (
-                                  <ArrowDown className="w-3.5 h-3.5" />
-                                )}
+                                {isSend ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
                               </div>
                             </td>
-
                             <td className="px-3 py-3">
                               <div className="flex items-center gap-2">
-                                {isEth ? (
-                                  <EthereumIcon className="w-6 h-6 shrink-0" />
-                                ) : (
-                                  <UsdcIcon className="w-6 h-6 shrink-0" />
-                                )}
-                                <span className="font-semibold text-xs text-[#F4F1E8]">
-                                  {tx.assetSymbol}
-                                </span>
+                                {isEth ? <EthereumIcon className="w-6 h-6 shrink-0" /> : <UsdcIcon className="w-6 h-6 shrink-0" />}
+                                <span className="font-semibold text-xs text-[#F4F1E8]">{tx.assetSymbol}</span>
                               </div>
                             </td>
-
                             <td className="px-3 py-3">
-                              <p className="font-mono font-bold text-[#F4F1E8] text-xs">
-                                {tx.amount}
-                              </p>
+                              <p className="font-mono font-bold text-[#F4F1E8] text-xs tabular-nums">{tx.amount}</p>
                               {fiatLabel && (
-                                <p className="text-[11px] text-[#91AAA0] font-mono mt-0.5">
-                                  {fiatLabel}
-                                </p>
+                                <p className="text-xs text-[#7a9187] font-mono mt-0.5 tabular-nums">{fiatLabel}</p>
                               )}
                             </td>
-
                             <td className="px-3 py-3">
                               <StatusBadge status={tx.status} />
                             </td>
-
                             <td className="px-3 py-3 whitespace-nowrap">
                               <p className="text-xs text-[#F4F1E8] font-medium">{dateStr}</p>
-                              <p className="text-[11px] text-[#91AAA0]">{timeStr}</p>
+                              <p className="text-xs text-[#7a9187]">{timeStr}</p>
                             </td>
-
                             <td className="px-5 py-3 text-right">
-                              <ChevronRight className="w-4 h-4 text-[#91AAA0] group-hover:text-[#8BE3BB] transition-colors ml-auto" />
+                              <ChevronRight className="w-4 h-4 text-[#7a9187] group-hover:text-[#8BE3BB] transition-colors duration-150 ml-auto" />
                             </td>
                           </tr>
                         );
@@ -1152,119 +1084,108 @@ export function WalletView({
             </div>
           </div>
 
-          {/* ── RIGHT COLUMN: Wallet Info, Network Status, Testnet Notice (lg:col-span-5) ── */}
-          <div className="lg:col-span-5 space-y-5">
-            {/* Card 3: Wallet Information */}
-            <div className="rounded-2xl bg-[#183126] border border-[#294438] p-5 shadow-sm space-y-3.5">
+          {/* RIGHT: Wallet info + Network status + Testnet notice */}
+          <div className="lg:col-span-5 space-y-4">
+
+            {/* Wallet information */}
+            <div className={`${cardCls} p-5 space-y-3.5`}>
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-[#F4F1E8]">Wallet Information</h3>
+                <h3 className="text-base font-bold text-[#F4F1E8]">Wallet information</h3>
                 {isWalletConnected ? (
                   <a
                     href={`https://sepolia.etherscan.io/address/${address}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-[#8BE3BB] hover:underline"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-[#8BE3BB] hover:underline transition-colors duration-150"
                   >
-                    <span>View on Etherscan</span>
+                    <span>Etherscan</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 ) : (
                   <button
                     type="button"
                     onClick={handleConnectMetaMask}
-                    className="text-xs font-semibold text-[#8BE3BB] hover:underline cursor-pointer"
+                    className="text-xs font-semibold text-[#8BE3BB] hover:underline cursor-pointer transition-colors duration-150"
                   >
-                    Connect MetaMask →
+                    Connect MetaMask
                   </button>
                 )}
               </div>
 
-              <div className="divide-y divide-[#294438]/60 text-xs">
+              <div className="divide-y divide-[#233a30]/60 text-xs">
                 <div className="flex items-center justify-between py-2.5 gap-3">
-                  <span className="text-[#91AAA0] shrink-0">Address</span>
+                  <span className="text-[#7a9187] shrink-0">Address</span>
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="font-mono text-[#F4F1E8] truncate font-medium">
-                      {isWalletConnected ? shortAddr(address, 7, 4) : 'Not Connected'}
+                    <span className="font-mono text-[#F4F1E8] truncate font-medium tabular-nums">
+                      {isWalletConnected ? shortAddr(address, 7, 4) : 'Not connected'}
                     </span>
                     {isWalletConnected && <CopyButton value={address} />}
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between py-2.5">
-                  <span className="text-[#91AAA0]">Network</span>
+                  <span className="text-[#7a9187]">Network</span>
                   <span className="inline-flex items-center gap-1.5 font-medium text-[#F4F1E8]">
-                    <span
-                      className={`w-2 h-2 rounded-full shrink-0 ${
-                        isWalletConnected && isSepolia ? 'bg-[#6ED6A8]' : 'bg-[#91AAA0]'
-                      }`}
-                    />
-                    {isWalletConnected
-                      ? isSepolia
-                        ? 'Sepolia Testnet'
-                        : `Chain ${chainId ?? 'Unknown'}`
-                      : 'Sepolia Testnet'}
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isWalletConnected && isSepolia ? 'bg-[#6ED6A8]' : 'bg-[#7a9187]'}`} />
+                    {isWalletConnected ? isSepolia ? 'Sepolia testnet' : `Chain ${chainId ?? 'Unknown'}` : 'Sepolia testnet'}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between py-2.5">
-                  <span className="text-[#91AAA0]">Chain ID</span>
-                  <span className="font-mono font-medium text-[#F4F1E8]">
+                  <span className="text-[#7a9187]">Chain ID</span>
+                  <span className="font-mono font-medium text-[#F4F1E8] tabular-nums">
                     {isWalletConnected ? chainId ?? '11155111' : '11155111'}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between py-2.5">
-                  <span className="text-[#91AAA0]">Wallet Type</span>
+                  <span className="text-[#7a9187]">Wallet type</span>
                   <span className="font-medium text-[#F4F1E8]">
-                    {isWalletConnected ? connector?.name || 'Injected' : 'Not Connected'}
+                    {isWalletConnected ? connector?.name || 'Injected' : 'Not connected'}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between py-2.5">
-                  <span className="text-[#91AAA0]">Connected Since</span>
+                  <span className="text-[#7a9187]">Connected since</span>
                   <span className="font-medium text-[#F4F1E8]">
-                    {isWalletConnected ? connectedTimeStr || 'This session' : '—'}
+                    {isWalletConnected ? connectedTimeStr || 'This session' : '\u2014'}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Card 4: Network Status */}
-            <div className="rounded-2xl bg-[#183126] border border-[#294438] p-5 shadow-sm space-y-3.5">
+            {/* Network status */}
+            <div className={`${cardCls} p-5 space-y-3.5`}>
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-[#F4F1E8]">Network Status</h3>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium text-[#6ED6A8] bg-[#122c22] border border-[#254d3b]">
+                <h3 className="text-base font-bold text-[#F4F1E8]">Network status</h3>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium text-[#6ED6A8] bg-[#071410] border border-[#233a30]">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#6ED6A8]" />
                   Healthy
                 </span>
               </div>
 
-              <div className="divide-y divide-[#294438]/60 text-xs">
+              <div className="divide-y divide-[#233a30]/60 text-xs">
                 <div className="flex items-center justify-between py-2.5">
-                  <span className="text-[#91AAA0]">Network</span>
-                  <span className="font-medium text-[#F4F1E8]">Sepolia Testnet</span>
+                  <span className="text-[#7a9187]">Network</span>
+                  <span className="font-medium text-[#F4F1E8]">Sepolia testnet</span>
                 </div>
 
                 <div className="flex items-center justify-between py-2.5">
-                  <span className="text-[#91AAA0]">Block Number</span>
-                  <span className="font-mono font-medium text-[#F4F1E8]">
-                    {isBlockLoading
-                      ? 'Fetching...'
-                      : blockNumber
-                      ? Number(blockNumber).toLocaleString('en-US')
-                      : '—'}
+                  <span className="text-[#7a9187]">Block number</span>
+                  <span className="font-mono font-medium text-[#F4F1E8] tabular-nums">
+                    {isBlockLoading ? 'Syncing\u2026' : blockNumber ? Number(blockNumber).toLocaleString('en-US') : '\u2014'}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between py-2.5">
-                  <span className="text-[#91AAA0]">Average Gas Fee</span>
-                  <span className="font-mono font-medium text-[#F4F1E8]">
-                    {isGasLoading ? 'Fetching...' : formattedGasFee || '—'}
+                  <span className="text-[#7a9187]">Avg gas fee</span>
+                  <span className="font-mono font-medium text-[#F4F1E8] tabular-nums">
+                    {isGasLoading ? 'Syncing\u2026' : formattedGasFee || '\u2014'}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between py-2.5">
-                  <span className="text-[#91AAA0]">Network Status</span>
+                  <span className="text-[#7a9187]">Status</span>
                   <span className="inline-flex items-center gap-1.5 font-medium text-[#6ED6A8]">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#6ED6A8]" />
                     Operational
@@ -1273,14 +1194,14 @@ export function WalletView({
               </div>
             </div>
 
-            {/* Card 5: Testnet Notice */}
-            <div className="rounded-2xl border border-[#86BDF7]/20 bg-[#86BDF7]/5 p-4 flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-[#86BDF7]/20 flex items-center justify-center shrink-0 mt-0.5">
-                <Info className="w-4 h-4 text-[#86BDF7]" />
+            {/* Testnet notice */}
+            <div className={`${cardCls} p-4 flex items-start gap-3`}>
+              <div className={`w-6 h-6 rounded-md ${innerCls} flex items-center justify-center shrink-0 mt-0.5`}>
+                <Info className="w-3.5 h-3.5 text-[#7a9187]" />
               </div>
               <div className="space-y-1">
-                <p className="text-xs font-bold text-[#F4F1E8]">Testnet Notice</p>
-                <p className="text-[11px] text-[#91AAA0] leading-relaxed">
+                <p className="text-xs font-bold text-[#F4F1E8]">Testnet</p>
+                <p className="text-xs text-[#7a9187] leading-relaxed">
                   You are using Sepolia testnet. Tokens have no real-world value.
                 </p>
               </div>
@@ -1289,7 +1210,6 @@ export function WalletView({
         </div>
       </div>
 
-      {/* Receive Modal */}
       {receiveOpen && (
         <ReceiveModal
           address={address}
@@ -1299,7 +1219,6 @@ export function WalletView({
         />
       )}
 
-      {/* Add Token Modal */}
       {addTokenOpen && (
         <AddTokenModal
           onClose={() => setAddTokenOpen(false)}

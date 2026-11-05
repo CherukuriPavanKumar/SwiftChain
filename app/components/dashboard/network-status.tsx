@@ -32,41 +32,41 @@ export function NetworkStatus() {
     : '5,842,321';
 
   return (
-    <div className="rounded-2xl bg-[#183126] border border-[#294438] p-5.5 space-y-4 shadow-sm">
-      {/* Header with Healthy Badge */}
+    <div className="rounded-xl bg-[#0d1e17] border border-[#233a30] p-5 space-y-3.5 shadow-sm">
+      {/* Header with Status Badge */}
       <div className="flex items-center justify-between">
         <h3 className="text-base font-bold text-[#F4F1E8]">Network Status</h3>
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium text-[#6ED6A8] bg-[#122c22] border border-[#254d3b]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#6ED6A8]" />
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium text-[#8BE3BB] bg-[#152920] border border-[#233a30]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#8BE3BB]" />
           Healthy
         </span>
       </div>
 
-      {/* Metrics List */}
-      <div className="space-y-3 pt-1 text-xs divide-y divide-[#294438]/40">
+      {/* Metrics List with Tabular Figures */}
+      <div className="space-y-2.5 pt-1 text-xs divide-y divide-[#233a30]">
         <div className="flex items-center justify-between pt-2 first:pt-0">
-          <span className="text-[#91AAA0]">Network</span>
+          <span className="text-[#a6b8b0]">Network</span>
           <span className="font-medium text-[#F4F1E8]">Sepolia Testnet</span>
         </div>
 
         <div className="flex items-center justify-between pt-2">
-          <span className="text-[#91AAA0]">Block Number</span>
-          <span className="font-mono font-medium text-[#F4F1E8]">
+          <span className="text-[#a6b8b0]">Block Number</span>
+          <span className="font-mono font-medium text-[#F4F1E8] tabular-nums">
             {isBlockLoading ? '...' : formattedBlock}
           </span>
         </div>
 
         <div className="flex items-center justify-between pt-2">
-          <span className="text-[#91AAA0]">Average Gas Fee</span>
-          <span className="font-mono font-medium text-[#F4F1E8]">
+          <span className="text-[#a6b8b0]">Average Rail Fee</span>
+          <span className="font-mono font-medium text-[#F4F1E8] tabular-nums">
             {isGasLoading ? '...' : formattedGasFee}
           </span>
         </div>
 
         <div className="flex items-center justify-between pt-2">
-          <span className="text-[#91AAA0]">Network Status</span>
-          <span className="inline-flex items-center gap-1.5 text-[#6ED6A8] font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#6ED6A8]" />
+          <span className="text-[#a6b8b0]">Consensus State</span>
+          <span className="inline-flex items-center gap-1.5 text-[#8BE3BB] font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#8BE3BB]" />
             Operational
           </span>
         </div>

@@ -2,13 +2,16 @@ import { createPublicClient, http, fallback } from 'viem';
 import { updateTransfer } from '@/lib/transfer-client';
 import { sepolia } from 'viem/chains';
 
-// Public client backed by fast, resilient non-Infura public RPCs
+const alchemyKey = process.env.NEXT_PUBLIC_ALCHEMY_API_KEY;
+
+// Public client backed by Alchemy + fast, resilient fallbacks
 export const sepoliaPublicClient = createPublicClient({
   chain: sepolia,
   transport: fallback([
-    http('https://11155111.rpc.thirdweb.com'),
+    ...(alchemyKey ? [http(`https://eth-sepolia.g.alchemy.com/v2/${alchemyKey}`)] : []),
     http('https://gateway.tenderly.co/public/sepolia'),
-    http('https://ethereum-sepolia.publicnode.com'),
+    http('https://11155111.rpc.thirdweb.com'),
+    http(),
   ]),
 });
 
@@ -37,6 +40,7 @@ export async function getSepoliaGasAndFees(params: {
 }): Promise<GasFeeParams> {
   // Minimum floor: 1.5 gwei for gas price on Sepolia
   const FLOOR_GAS_PRICE = BigInt(1_500_000_000);
+  const minGas = params.isErc20 ? BigInt(65000) : BigInt(21000);
 
   try {
     const [gasPriceResult, gasEst] = await Promise.all([
@@ -51,9 +55,11 @@ export async function getSepoliaGasAndFees(params: {
         .catch(() => null),
     ]);
 
-    // Apply a 25% safety buffer to gas estimate, fallback to standard units
-    const fallbackGas = params.isErc20 ? BigInt(65000) : BigInt(21000);
-    const gas = gasEst ? (gasEst * BigInt(125)) / BigInt(100) : fallbackGas;
+    // Apply a 25% safety buffer to gas estimate, never falling below Ethereum intrinsic minimum
+    let gas = gasEst ? (gasEst * BigInt(125)) / BigInt(100) : minGas;
+    if (gas < minGas) {
+      gas = minGas;
+    }
 
     // Apply a 20% buffer to gas price, enforce minimum floor
     let gasPrice = gasPriceResult
@@ -68,7 +74,7 @@ export async function getSepoliaGasAndFees(params: {
   } catch (err) {
     console.warn('Using default gas parameters for Sepolia transfer:', err);
     return {
-      gas: params.isErc20 ? BigInt(65000) : BigInt(21000),
+      gas: minGas,
       gasPrice: FLOOR_GAS_PRICE,
     };
   }

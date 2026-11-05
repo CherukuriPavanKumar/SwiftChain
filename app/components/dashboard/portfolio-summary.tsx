@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Eye, EyeOff, ChevronRight, ChevronDown, ArrowUpRight } from 'lucide-react';
+import { Eye, EyeOff, ChevronRight, ChevronDown } from 'lucide-react';
 import { EthereumIcon, UsdcIcon } from './token-icons';
 import { useTokenBalances } from '@/hooks/use-token-balances';
 import { useEthPrice } from '@/app/components/eth-price-ticker';
@@ -85,36 +85,36 @@ export function PortfolioSummary({ onSelectAsset }: PortfolioSummaryProps) {
     : '$0.00';
 
   return (
-    <section className="grid grid-cols-1 md:grid-cols-3 gap-5" aria-label="Portfolio Summary">
+    <section className="grid grid-cols-1 md:grid-cols-3 gap-4" aria-label="Portfolio Summary">
       {/* 1. Total Portfolio Value Card */}
-      <div className="rounded-2xl bg-[#183126] border border-[#294438] p-5.5 flex flex-col justify-between space-y-4 shadow-sm hover:border-[#8BE3BB]/30 transition-all">
+      <div className="rounded-xl bg-[#0d1e17] border border-[#233a30] p-5 flex flex-col justify-between space-y-4 shadow-sm hover:border-[#335345] transition-colors">
         {/* Card Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-[#91AAA0]">Total Portfolio Value</span>
+            <span className="text-xs font-normal text-[#a6b8b0]">Total portfolio value</span>
             <button
               type="button"
               onClick={() => setHiddenBalance((prev) => !prev)}
               aria-label={hiddenBalance ? 'Show balance' : 'Hide balance'}
-              className="text-[#91AAA0] hover:text-[#F4F1E8] transition-colors p-0.5 rounded"
+              className="text-[#7a9187] hover:text-[#F4F1E8] transition-colors p-0.5 rounded"
             >
-              {hiddenBalance ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              {hiddenBalance ? <EyeOff className="w-3.5 h-3.5 stroke-[1.5]" /> : <Eye className="w-3.5 h-3.5 stroke-[1.5]" />}
             </button>
           </div>
 
-          {/* Currency Pill Dropdown */}
+          {/* Currency Dropdown */}
           <div className="relative">
             <button
               type="button"
               onClick={() => setCurrencyDropdownOpen((prev) => !prev)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#10231B] border border-[#294438] text-xs font-semibold text-[#F4F1E8] hover:border-[#8BE3BB]/40 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#071410] border border-[#233a30] text-xs font-bold text-[#F4F1E8] hover:border-[#335345] transition-colors"
             >
               <span>{selectedCurrency}</span>
-              <ChevronDown className="w-3 h-3 text-[#91AAA0]" />
+              <ChevronDown className="w-3 h-3 text-[#7a9187] stroke-[1.5]" />
             </button>
 
             {currencyDropdownOpen && (
-              <div className="absolute right-0 mt-1.5 w-24 rounded-xl bg-[#10231B] border border-[#294438] py-1 shadow-lg z-20">
+              <div className="absolute right-0 mt-1.5 w-24 rounded-lg bg-[#071410] border border-[#233a30] py-1 shadow-lg z-20">
                 <button
                   type="button"
                   onClick={() => {
@@ -122,7 +122,7 @@ export function PortfolioSummary({ onSelectAsset }: PortfolioSummaryProps) {
                     setCurrencyDropdownOpen(false);
                   }}
                   className={`w-full text-left px-3 py-1.5 text-xs font-medium transition-colors ${
-                    selectedCurrency === 'INR' ? 'text-[#8BE3BB] bg-[#183126]' : 'text-[#91AAA0] hover:text-[#F4F1E8]'
+                    selectedCurrency === 'INR' ? 'text-[#8BE3BB] bg-[#152920]' : 'text-[#a6b8b0] hover:text-[#F4F1E8]'
                   }`}
                 >
                   INR (₹)
@@ -134,7 +134,7 @@ export function PortfolioSummary({ onSelectAsset }: PortfolioSummaryProps) {
                     setCurrencyDropdownOpen(false);
                   }}
                   className={`w-full text-left px-3 py-1.5 text-xs font-medium transition-colors ${
-                    selectedCurrency === 'USD' ? 'text-[#8BE3BB] bg-[#183126]' : 'text-[#91AAA0] hover:text-[#F4F1E8]'
+                    selectedCurrency === 'USD' ? 'text-[#8BE3BB] bg-[#152920]' : 'text-[#a6b8b0] hover:text-[#F4F1E8]'
                   }`}
                 >
                   USD ($)
@@ -144,9 +144,9 @@ export function PortfolioSummary({ onSelectAsset }: PortfolioSummaryProps) {
           </div>
         </div>
 
-        {/* Big Balance Number */}
+        {/* Big Balance Number: Bold and Tabular */}
         <div>
-          <p className="text-2xl sm:text-3xl font-extrabold text-[#F4F1E8] tracking-tight font-mono">
+          <p className="text-2xl sm:text-3xl font-bold text-[#F4F1E8] tracking-tight font-mono tabular-nums">
             {hiddenBalance ? '••••••••' : displayTotal}
           </p>
         </div>
@@ -154,42 +154,42 @@ export function PortfolioSummary({ onSelectAsset }: PortfolioSummaryProps) {
         {/* 24h Change Trend */}
         <div className="flex items-center gap-1.5 text-xs">
           <span
-            className={`font-semibold flex items-center gap-0.5 ${
-              isPositiveChange ? 'text-[#6ED6A8]' : 'text-[#FF8585]'
+            className={`font-medium tabular-nums flex items-center gap-0.5 ${
+              isPositiveChange ? 'text-[#8BE3BB]' : 'text-[#FF8585]'
             }`}
           >
             <span>{isPositiveChange ? '↑' : '↓'}</span>
             <span>{isPositiveChange ? `+${changePercent.toFixed(2)}%` : `${changePercent.toFixed(2)}%`}</span>
           </span>
-          <span className="text-[#91AAA0]">(24h)</span>
+          <span className="text-[#7a9187] font-normal">(24h)</span>
         </div>
       </div>
 
       {/* 2. Ethereum (ETH) Card */}
       <div
         onClick={() => onSelectAsset?.('ETH')}
-        className="rounded-2xl bg-[#183126] border border-[#294438] p-5.5 flex flex-col justify-between space-y-4 shadow-sm hover:border-[#8BE3BB]/40 transition-all cursor-pointer group"
+        className="rounded-xl bg-[#0d1e17] border border-[#233a30] p-5 flex flex-col justify-between space-y-4 shadow-sm hover:border-[#335345] transition-colors cursor-pointer group"
       >
         {/* Card Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <EthereumIcon className="w-8 h-8" />
+            <EthereumIcon className="w-7 h-7" />
             <div>
-              <p className="text-sm font-semibold text-[#F4F1E8] group-hover:text-[#8BE3BB] transition-colors leading-tight">
+              <p className="text-sm font-bold text-[#F4F1E8] group-hover:text-[#8BE3BB] transition-colors leading-tight">
                 Ethereum
               </p>
-              <p className="text-[11px] font-mono text-[#91AAA0]">ETH</p>
+              <p className="text-xs font-mono text-[#7a9187]">ETH</p>
             </div>
           </div>
-          <ChevronRight className="w-4 h-4 text-[#91AAA0] group-hover:text-[#8BE3BB] transition-colors" />
+          <ChevronRight className="w-4 h-4 text-[#7a9187] group-hover:text-[#8BE3BB] transition-colors stroke-[1.5]" />
         </div>
 
-        {/* Amount & Fiat Equivalent */}
+        {/* Amount & Fiat Equivalent: Bold and Tabular */}
         <div>
-          <p className="text-2xl sm:text-3xl font-extrabold text-[#F4F1E8] tracking-tight font-mono">
+          <p className="text-2xl sm:text-3xl font-bold text-[#F4F1E8] tracking-tight font-mono tabular-nums">
             {hiddenBalance ? '••••••' : isEthLoading ? '...' : displayEthAmount}
           </p>
-          <p className="text-xs text-[#91AAA0] mt-1 font-mono">
+          <p className="text-xs text-[#7a9187] mt-1 font-mono tabular-nums">
             {hiddenBalance ? '••••' : `≈ ${displayEthFiat}`}
           </p>
         </div>
@@ -198,28 +198,28 @@ export function PortfolioSummary({ onSelectAsset }: PortfolioSummaryProps) {
       {/* 3. USD Coin (USDC) Card */}
       <div
         onClick={() => onSelectAsset?.('USDC')}
-        className="rounded-2xl bg-[#183126] border border-[#294438] p-5.5 flex flex-col justify-between space-y-4 shadow-sm hover:border-[#8BE3BB]/40 transition-all cursor-pointer group"
+        className="rounded-xl bg-[#0d1e17] border border-[#233a30] p-5 flex flex-col justify-between space-y-4 shadow-sm hover:border-[#335345] transition-colors cursor-pointer group"
       >
         {/* Card Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <UsdcIcon className="w-8 h-8" />
+            <UsdcIcon className="w-7 h-7" />
             <div>
-              <p className="text-sm font-semibold text-[#F4F1E8] group-hover:text-[#8BE3BB] transition-colors leading-tight">
+              <p className="text-sm font-bold text-[#F4F1E8] group-hover:text-[#8BE3BB] transition-colors leading-tight">
                 USD Coin
               </p>
-              <p className="text-[11px] font-mono text-[#91AAA0]">USDC</p>
+              <p className="text-xs font-mono text-[#7a9187]">USDC</p>
             </div>
           </div>
-          <ChevronRight className="w-4 h-4 text-[#91AAA0] group-hover:text-[#8BE3BB] transition-colors" />
+          <ChevronRight className="w-4 h-4 text-[#7a9187] group-hover:text-[#8BE3BB] transition-colors stroke-[1.5]" />
         </div>
 
-        {/* Amount & Fiat Equivalent */}
+        {/* Amount & Fiat Equivalent: Bold and Tabular */}
         <div>
-          <p className="text-2xl sm:text-3xl font-extrabold text-[#F4F1E8] tracking-tight font-mono">
+          <p className="text-2xl sm:text-3xl font-bold text-[#F4F1E8] tracking-tight font-mono tabular-nums">
             {hiddenBalance ? '••••••' : isUsdcLoading ? '...' : displayUsdcAmount}
           </p>
-          <p className="text-xs text-[#91AAA0] mt-1 font-mono">
+          <p className="text-xs text-[#7a9187] mt-1 font-mono tabular-nums">
             {hiddenBalance ? '••••' : `≈ ${displayUsdcFiat}`}
           </p>
         </div>

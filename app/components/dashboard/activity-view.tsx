@@ -34,8 +34,8 @@ type DateFilterType = 'all' | '24h' | '7d' | '30d';
 const ITEMS_PER_PAGE = 10;
 
 function truncateAddress(addr: string | null | undefined): string {
-  if (!addr || addr.length < 10) return addr || '—';
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  if (!addr || addr.length < 10) return addr || '\u2014';
+  return `${addr.slice(0, 6)}\u2026${addr.slice(-4)}`;
 }
 
 export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
@@ -106,16 +106,16 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
     if (tx.inrSourceAmount) {
       const num = parseFloat(tx.inrSourceAmount);
       if (!isNaN(num) && num > 0) {
-        return `≈ ₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return `\u2248 \u20b9${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       }
     }
     const tokenAmount = parseFloat(tx.amount) || 0;
     if (tx.assetSymbol === 'USDC') {
       const rate = marketData?.usdc?.inr ?? marketData?.fiatReference?.inrPerUsd ?? 94.88;
-      return `≈ ₹${(tokenAmount * rate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      return `\u2248 \u20b9${(tokenAmount * rate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
     const rate = marketData?.ethereum?.inr ?? marketData?.inr ?? 230000;
-    return `≈ ₹${(tokenAmount * rate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `\u2248 \u20b9${(tokenAmount * rate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
   // Format date and time
@@ -222,25 +222,33 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
     setCurrentPage(1);
   }
 
+  /* Shared class tokens */
+  const filterBtnCls = 'px-3 py-2 rounded-lg bg-[#071410] border border-[#233a30] text-xs font-medium text-[#F4F1E8] flex items-center gap-2 hover:border-[#8BE3BB]/35 transition-colors duration-150';
+  const dropdownCls = 'absolute top-full right-0 mt-1.5 rounded-lg bg-[#0d1e17] border border-[#233a30] p-1 shadow-lg z-30 space-y-0.5';
+  const dropdownItemCls = (active: boolean) =>
+    `w-full text-left px-3 py-1.5 rounded-md text-xs font-medium transition-colors duration-150 ${
+      active ? 'bg-[#152920] text-[#8BE3BB]' : 'text-[#a6b8b0] hover:text-[#F4F1E8] hover:bg-[#152920]/60'
+    }`;
+
   return (
-    <div className="pt-6 space-y-6 animate-in fade-in duration-150">
-      {/* ================= 1. SEARCH & FILTERS ROW ================= */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3.5">
-        {/* Search Input Box */}
-        <div className="flex-1 relative flex items-center rounded-xl bg-[#10231B] border border-[#294438] px-3.5 py-2.5 focus-within:border-[#8BE3BB]/50 transition-colors shadow-xs">
-          <Search className="w-4 h-4 text-[#91AAA0] shrink-0" />
+    <div className="pt-6 space-y-5 animate-in fade-in duration-150">
+      {/* 1. SEARCH & FILTERS ROW */}
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        {/* Search Input */}
+        <div className="flex-1 relative flex items-center rounded-lg bg-[#071410] border border-[#233a30] px-3.5 py-2.5 focus-within:border-[#8BE3BB]/50 transition-colors duration-150">
+          <Search className="w-4 h-4 text-[#7a9187] shrink-0" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search address or transaction hash..."
-            className="w-full bg-transparent border-none outline-none text-xs sm:text-sm text-[#F4F1E8] placeholder:text-[#91AAA0]/60 pl-2.5"
+            placeholder="Search address or transaction hash\u2026"
+            className="w-full bg-transparent border-none outline-none text-xs sm:text-sm text-[#F4F1E8] placeholder:text-[#7a9187]/60 pl-2.5"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="text-[#91AAA0] hover:text-[#F4F1E8] transition-colors p-0.5"
+              className="text-[#7a9187] hover:text-[#F4F1E8] transition-colors duration-150 p-0.5"
               title="Clear search"
             >
               <X className="w-3.5 h-3.5" />
@@ -248,9 +256,9 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
           )}
         </div>
 
-        {/* Dropdowns Row: Status, Asset, Date */}
-        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
-          {/* Dropdown 1: All status */}
+        {/* Filter Dropdowns */}
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
+          {/* Status filter */}
           <div className="relative" ref={statusRef}>
             <button
               type="button"
@@ -259,7 +267,7 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
                 setAssetDropdownOpen(false);
                 setDateDropdownOpen(false);
               }}
-              className="px-3.5 py-2.5 rounded-xl bg-[#10231B] border border-[#294438] text-xs font-medium text-[#F4F1E8] flex items-center gap-2 hover:border-[#8BE3BB]/40 transition-colors shadow-xs"
+              className={filterBtnCls}
             >
               <span>
                 {statusFilter === 'all'
@@ -270,11 +278,11 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
                   ? 'Pending'
                   : 'Failed'}
               </span>
-              <ChevronDown className="w-3.5 h-3.5 text-[#91AAA0]" />
+              <ChevronDown className="w-3.5 h-3.5 text-[#7a9187]" />
             </button>
 
             {statusDropdownOpen && (
-              <div className="absolute top-full right-0 mt-1.5 w-36 rounded-xl bg-[#10231B] border border-[#294438] p-1.5 shadow-xl z-30 space-y-1">
+              <div className={`${dropdownCls} w-36`}>
                 {[
                   { id: 'all', label: 'All status' },
                   { id: 'completed', label: 'Completed' },
@@ -288,11 +296,7 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
                       setStatusFilter(item.id as StatusFilterType);
                       setStatusDropdownOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                      statusFilter === item.id
-                        ? 'bg-[#183126] text-[#8BE3BB]'
-                        : 'text-[#91AAA0] hover:text-[#F4F1E8] hover:bg-[#183126]/50'
-                    }`}
+                    className={dropdownItemCls(statusFilter === item.id)}
                   >
                     {item.label}
                   </button>
@@ -301,7 +305,7 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
             )}
           </div>
 
-          {/* Dropdown 2: All assets */}
+          {/* Asset filter */}
           <div className="relative" ref={assetRef}>
             <button
               type="button"
@@ -310,16 +314,14 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
                 setStatusDropdownOpen(false);
                 setDateDropdownOpen(false);
               }}
-              className="px-3.5 py-2.5 rounded-xl bg-[#10231B] border border-[#294438] text-xs font-medium text-[#F4F1E8] flex items-center gap-2 hover:border-[#8BE3BB]/40 transition-colors shadow-xs"
+              className={filterBtnCls}
             >
-              <span>
-                {assetFilter === 'all' ? 'All assets' : assetFilter}
-              </span>
-              <ChevronDown className="w-3.5 h-3.5 text-[#91AAA0]" />
+              <span>{assetFilter === 'all' ? 'All assets' : assetFilter}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-[#7a9187]" />
             </button>
 
             {assetDropdownOpen && (
-              <div className="absolute top-full right-0 mt-1.5 w-36 rounded-xl bg-[#10231B] border border-[#294438] p-1.5 shadow-xl z-30 space-y-1">
+              <div className={`${dropdownCls} w-32`}>
                 {[
                   { id: 'all', label: 'All assets' },
                   { id: 'ETH', label: 'ETH' },
@@ -332,11 +334,7 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
                       setAssetFilter(item.id as AssetFilterType);
                       setAssetDropdownOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                      assetFilter === item.id
-                        ? 'bg-[#183126] text-[#8BE3BB]'
-                        : 'text-[#91AAA0] hover:text-[#F4F1E8] hover:bg-[#183126]/50'
-                    }`}
+                    className={dropdownItemCls(assetFilter === item.id)}
                   >
                     {item.label}
                   </button>
@@ -345,7 +343,7 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
             )}
           </div>
 
-          {/* Dropdown 3: All time */}
+          {/* Date filter */}
           <div className="relative" ref={dateRef}>
             <button
               type="button"
@@ -354,9 +352,9 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
                 setStatusDropdownOpen(false);
                 setAssetDropdownOpen(false);
               }}
-              className="px-3.5 py-2.5 rounded-xl bg-[#10231B] border border-[#294438] text-xs font-medium text-[#F4F1E8] flex items-center gap-2 hover:border-[#8BE3BB]/40 transition-colors shadow-xs"
+              className={filterBtnCls}
             >
-              <Calendar className="w-3.5 h-3.5 text-[#91AAA0]" />
+              <Calendar className="w-3.5 h-3.5 text-[#7a9187]" />
               <span>
                 {dateFilter === 'all'
                   ? 'All time'
@@ -366,11 +364,11 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
                   ? 'Last 7 days'
                   : 'Last 30 days'}
               </span>
-              <ChevronDown className="w-3.5 h-3.5 text-[#91AAA0]" />
+              <ChevronDown className="w-3.5 h-3.5 text-[#7a9187]" />
             </button>
 
             {dateDropdownOpen && (
-              <div className="absolute top-full right-0 mt-1.5 w-40 rounded-xl bg-[#10231B] border border-[#294438] p-1.5 shadow-xl z-30 space-y-1">
+              <div className={`${dropdownCls} w-40`}>
                 {[
                   { id: 'all', label: 'All time' },
                   { id: '24h', label: 'Last 24 hours' },
@@ -384,11 +382,7 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
                       setDateFilter(item.id as DateFilterType);
                       setDateDropdownOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                      dateFilter === item.id
-                        ? 'bg-[#183126] text-[#8BE3BB]'
-                        : 'text-[#91AAA0] hover:text-[#F4F1E8] hover:bg-[#183126]/50'
-                    }`}
+                    className={dropdownItemCls(dateFilter === item.id)}
                   >
                     {item.label}
                   </button>
@@ -399,15 +393,15 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
         </div>
       </div>
 
-      {/* ================= 2. MAIN TRANSACTION HISTORY TABLE ================= */}
-      <div className="rounded-2xl bg-[#183126] border border-[#294438] shadow-sm overflow-hidden">
+      {/* 2. MAIN TRANSACTION HISTORY TABLE */}
+      <div className="rounded-xl bg-[#0d1e17] border border-[#233a30] overflow-hidden">
         {/* Loading Skeleton */}
         {isLoading && (
           <div className="p-8 space-y-4">
-            <div className="h-6 bg-[#10231B] rounded-lg animate-pulse w-1/4" />
-            <div className="space-y-3 pt-4">
+            <div className="h-5 bg-[#071410] rounded-md animate-pulse w-1/4" />
+            <div className="space-y-3 pt-3">
               {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="h-14 bg-[#10231B]/60 rounded-xl animate-pulse" />
+                <div key={i} className="h-14 bg-[#071410]/80 rounded-lg animate-pulse" />
               ))}
             </div>
           </div>
@@ -417,30 +411,30 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
         {!isLoading && isError && (
           <div className="p-10 text-center space-y-3">
             <AlertCircle className="w-8 h-8 text-[#FF8585] mx-auto" />
-            <p className="text-sm font-semibold text-[#F4F1E8]">Unable to load transfer history</p>
-            <p className="text-xs text-[#91AAA0] max-w-sm mx-auto">
+            <p className="text-sm font-bold text-[#F4F1E8]">Unable to load transfer history</p>
+            <p className="text-xs text-[#7a9187] max-w-sm mx-auto">
               {error instanceof Error ? error.message : 'Please check your connection and try again.'}
             </p>
             <button
               type="button"
               onClick={() => refetch()}
-              className="px-4 py-2 rounded-xl bg-[#10231B] border border-[#294438] text-xs font-semibold text-[#8BE3BB] hover:border-[#8BE3BB]/50 transition-colors inline-flex items-center gap-2"
+              className="px-4 py-2 rounded-lg bg-[#071410] border border-[#233a30] text-xs font-semibold text-[#8BE3BB] hover:border-[#8BE3BB]/40 transition-colors duration-150 inline-flex items-center gap-2"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              <span>Retry</span>
+              <span>Try again</span>
             </button>
           </div>
         )}
 
-        {/* Empty History State (Zero transactions in DB) */}
+        {/* Empty History State */}
         {!isLoading && !isError && transfers?.length === 0 && (
           <div className="p-12 text-center space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-[#10231B] border border-[#294438] flex items-center justify-center mx-auto text-[#91AAA0]">
+            <div className="w-12 h-12 rounded-xl bg-[#071410] border border-[#233a30] flex items-center justify-center mx-auto text-[#7a9187]">
               <Inbox className="w-6 h-6" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#F4F1E8]">No transactions recorded yet</p>
-              <p className="text-xs text-[#91AAA0] mt-1 max-w-sm mx-auto">
+              <p className="text-xs text-[#7a9187] mt-1 max-w-sm mx-auto">
                 Your transfers and cross-border settlements on Ethereum Sepolia testnet will appear here.
               </p>
             </div>
@@ -448,29 +442,29 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
               <button
                 type="button"
                 onClick={onNavigateToSend}
-                className="px-4 py-2.5 rounded-xl bg-[#1e3d30] border border-[#294438] text-xs font-bold text-[#8BE3BB] hover:bg-[#254d3b] transition-all inline-flex items-center gap-2"
+                className="px-4 py-2.5 rounded-lg bg-[#152920] border border-[#233a30] text-xs font-bold text-[#8BE3BB] hover:bg-[#1e3d30] transition-colors duration-150 inline-flex items-center gap-2"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>Send Money →</span>
+                <span>Send money</span>
               </button>
             )}
           </div>
         )}
 
-        {/* No Results from Filter State */}
+        {/* No Results from Filter */}
         {!isLoading && !isError && (transfers?.length ?? 0) > 0 && currentSlice.length === 0 && (
           <div className="p-12 text-center space-y-3">
-            <Search className="w-8 h-8 text-[#91AAA0] mx-auto opacity-60" />
+            <Search className="w-8 h-8 text-[#7a9187] mx-auto opacity-50" />
             <p className="text-sm font-semibold text-[#F4F1E8]">No transactions match your filters</p>
-            <p className="text-xs text-[#91AAA0]">
+            <p className="text-xs text-[#7a9187]">
               Try adjusting your search query, status, asset, or date range.
             </p>
             <button
               type="button"
               onClick={handleResetFilters}
-              className="px-3.5 py-1.5 rounded-xl bg-[#10231B] border border-[#294438] text-xs font-semibold text-[#8BE3BB] hover:border-[#8BE3BB]/50 transition-colors"
+              className="px-3.5 py-1.5 rounded-lg bg-[#071410] border border-[#233a30] text-xs font-semibold text-[#8BE3BB] hover:border-[#8BE3BB]/40 transition-colors duration-150"
             >
-              Reset all filters
+              Reset filters
             </button>
           </div>
         )}
@@ -481,16 +475,16 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-[#294438] text-[11px] font-semibold text-[#91AAA0] uppercase tracking-wider">
-                    <th className="py-4 px-6 font-medium">Transaction</th>
-                    <th className="py-4 px-6 font-medium">Asset</th>
-                    <th className="py-4 px-6 font-medium">Amount</th>
-                    <th className="py-4 px-6 font-medium">Status</th>
-                    <th className="py-4 px-6 font-medium">Date</th>
-                    <th className="py-4 px-4 font-medium text-right" aria-label="Details" />
+                  <tr className="border-b border-[#233a30] text-xs text-[#7a9187]">
+                    <th className="py-3.5 px-6 font-medium">Transaction</th>
+                    <th className="py-3.5 px-6 font-medium">Asset</th>
+                    <th className="py-3.5 px-6 font-medium">Amount</th>
+                    <th className="py-3.5 px-6 font-medium">Status</th>
+                    <th className="py-3.5 px-6 font-medium">Date</th>
+                    <th className="py-3.5 px-4 font-medium text-right" aria-label="Details" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#294438]/50 text-xs">
+                <tbody className="divide-y divide-[#233a30]/50 text-xs">
                   {currentSlice.map((tx) => {
                     const isOutgoing = !address || tx.senderAddress.toLowerCase() === address.toLowerCase();
                     const { dateStr, timeStr } = formatDateTimeParts(tx.createdAt);
@@ -499,12 +493,12 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
                       <tr
                         key={tx.id}
                         onClick={() => setSelectedTransfer(tx as SettlementTrackerData)}
-                        className="hover:bg-[#10231B]/40 transition-colors cursor-pointer group"
+                        className="hover:bg-[#071410]/60 transition-colors duration-150 cursor-pointer group"
                       >
-                        {/* 1. Transaction Column (Direction Icon + Sent/Received Label + Hash) */}
-                        <td className="py-3.5 px-6">
-                          <div className="flex items-center gap-3.5">
-                            <div className="w-8 h-8 rounded-full bg-[#10231B] border border-[#294438] flex items-center justify-center text-[#8BE3BB] shrink-0">
+                        {/* Transaction Column */}
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#071410] border border-[#233a30] flex items-center justify-center text-[#8BE3BB] shrink-0">
                               {isOutgoing ? (
                                 <ArrowUp className="w-4 h-4" />
                               ) : (
@@ -517,68 +511,68 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
                                   ? `Sent to ${truncateAddress(tx.recipientAddress)}`
                                   : `Received from ${truncateAddress(tx.senderAddress)}`}
                               </p>
-                              <p className="text-[11px] font-mono text-[#91AAA0] mt-0.5">
+                              <p className="text-xs font-mono tabular-nums text-[#7a9187] mt-0.5">
                                 {truncateAddress(tx.transactionHash || '')}
                               </p>
                             </div>
                           </div>
                         </td>
 
-                        {/* 2. Asset Column (Token Icon + Symbol) */}
-                        <td className="py-3.5 px-6">
+                        {/* Asset Column */}
+                        <td className="py-4 px-6">
                           <div className="flex items-center gap-2">
                             {tx.assetSymbol === 'USDC' ? (
                               <UsdcIcon className="w-6 h-6" />
                             ) : (
                               <EthereumIcon className="w-6 h-6" />
                             )}
-                            <span className="font-mono text-xs font-bold text-[#F4F1E8]">
+                            <span className="font-mono text-xs font-bold tabular-nums text-[#F4F1E8]">
                               {tx.assetSymbol}
                             </span>
                           </div>
                         </td>
 
-                        {/* 3. Amount Column (Token Amount + Fiat Equivalent) */}
-                        <td className="py-3.5 px-6">
+                        {/* Amount Column */}
+                        <td className="py-4 px-6">
                           <div>
-                            <p className="font-mono text-xs font-bold text-[#F4F1E8] tabular-nums">
+                            <p className="font-mono text-xs font-bold tabular-nums text-[#F4F1E8]">
                               {tx.amount}
                             </p>
-                            <p className="font-mono text-[11px] text-[#91AAA0] mt-0.5">
+                            <p className="font-mono text-xs tabular-nums text-[#7a9187] mt-0.5">
                               {formatFiat(tx)}
                             </p>
                           </div>
                         </td>
 
-                        {/* 4. Status Column (Semantic Badges) */}
-                        <td className="py-3.5 px-6">
+                        {/* Status Column */}
+                        <td className="py-4 px-6">
                           {tx.status === 'confirmed' ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#1e3d30] border border-[#294438] text-[#6ED6A8]">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#152920] border border-[#233a30] text-[#6ED6A8]">
                               <span className="w-1.5 h-1.5 rounded-full bg-[#6ED6A8]" />
                               Completed
                             </span>
                           ) : tx.status === 'failed' || tx.status === 'rejected' ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#331818] border border-[#522929] text-[#FF8585]">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#331818]/60 border border-[#522929]/50 text-[#FF8585]">
                               <span className="w-1.5 h-1.5 rounded-full bg-[#FF8585]" />
                               Failed
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#332614] border border-[#523d1d] text-[#F2C66D]">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#332614]/60 border border-[#523d1d]/50 text-[#F2C66D]">
                               <span className="w-1.5 h-1.5 rounded-full bg-[#F2C66D]" />
                               Pending
                             </span>
                           )}
                         </td>
 
-                        {/* 5. Date Column (Date + Time) */}
-                        <td className="py-3.5 px-6 whitespace-nowrap">
+                        {/* Date Column */}
+                        <td className="py-4 px-6 whitespace-nowrap">
                           <p className="text-xs font-medium text-[#F4F1E8]">{dateStr}</p>
-                          <p className="text-[11px] text-[#91AAA0] mt-0.5">{timeStr}</p>
+                          <p className="text-xs text-[#7a9187] mt-0.5 tabular-nums">{timeStr}</p>
                         </td>
 
-                        {/* 6. Details Affordance (Chevron Right) */}
-                        <td className="py-3.5 px-4 text-right">
-                          <ChevronRight className="w-4 h-4 text-[#91AAA0] group-hover:text-[#8BE3BB] group-hover:translate-x-0.5 transition-all inline-block" />
+                        {/* Details affordance */}
+                        <td className="py-4 px-4 text-right">
+                          <ChevronRight className="w-4 h-4 text-[#7a9187] group-hover:text-[#8BE3BB] group-hover:translate-x-0.5 transition-all duration-150 inline-block" />
                         </td>
                       </tr>
                     );
@@ -588,7 +582,7 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
             </div>
 
             {/* Mobile View: Structured Transaction Cards */}
-            <div className="sm:hidden divide-y divide-[#294438]/50">
+            <div className="sm:hidden divide-y divide-[#233a30]/50">
               {currentSlice.map((tx) => {
                 const isOutgoing = !address || tx.senderAddress.toLowerCase() === address.toLowerCase();
                 const { dateStr, timeStr } = formatDateTimeParts(tx.createdAt);
@@ -597,11 +591,11 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
                   <div
                     key={tx.id}
                     onClick={() => setSelectedTransfer(tx as SettlementTrackerData)}
-                    className="p-4 space-y-2.5 hover:bg-[#10231B]/40 transition-colors cursor-pointer"
+                    className="p-4 space-y-2.5 hover:bg-[#071410]/60 transition-colors duration-150 cursor-pointer"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-[#10231B] border border-[#294438] flex items-center justify-center text-[#8BE3BB] shrink-0">
+                        <div className="w-7 h-7 rounded-full bg-[#071410] border border-[#233a30] flex items-center justify-center text-[#8BE3BB] shrink-0">
                           {isOutgoing ? (
                             <ArrowUp className="w-3.5 h-3.5" />
                           ) : (
@@ -614,7 +608,7 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
                               ? `Sent to ${truncateAddress(tx.recipientAddress)}`
                               : `Received from ${truncateAddress(tx.senderAddress)}`}
                           </p>
-                          <p className="text-[10px] font-mono text-[#91AAA0]">
+                          <p className="text-xs font-mono tabular-nums text-[#7a9187]">
                             {truncateAddress(tx.transactionHash || '')}
                           </p>
                         </div>
@@ -622,39 +616,39 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
 
                       {/* Status Badge */}
                       {tx.status === 'confirmed' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#1e3d30] text-[#6ED6A8]">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#152920] border border-[#233a30] text-[#6ED6A8]">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#6ED6A8]" />
-                          Completed
+                          Done
                         </span>
                       ) : tx.status === 'failed' || tx.status === 'rejected' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#331818] text-[#FF8585]">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#331818]/60 border border-[#522929]/50 text-[#FF8585]">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#FF8585]" />
                           Failed
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#332614] text-[#F2C66D]">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#332614]/60 border border-[#523d1d]/50 text-[#F2C66D]">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#F2C66D]" />
                           Pending
                         </span>
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between pt-1 text-xs">
+                    <div className="flex items-center justify-between pt-0.5 text-xs">
                       <div className="flex items-center gap-1.5">
                         {tx.assetSymbol === 'USDC' ? (
                           <UsdcIcon className="w-5 h-5" />
                         ) : (
                           <EthereumIcon className="w-5 h-5" />
                         )}
-                        <span className="font-mono font-bold text-[#F4F1E8]">
+                        <span className="font-mono font-bold tabular-nums text-[#F4F1E8]">
                           {tx.amount} {tx.assetSymbol}
                         </span>
-                        <span className="text-[11px] text-[#91AAA0] font-mono">
+                        <span className="text-xs tabular-nums text-[#7a9187] font-mono">
                           ({formatFiat(tx)})
                         </span>
                       </div>
 
-                      <div className="text-right text-[11px] text-[#91AAA0]">
+                      <div className="text-right text-xs text-[#7a9187]">
                         <span>{dateStr}</span>
                       </div>
                     </div>
@@ -663,48 +657,48 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
               })}
             </div>
 
-            {/* Table Footer: Range & Pagination Controls */}
-            <div className="border-t border-[#294438] p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-              <p className="text-[#91AAA0]">
-                Showing {totalItems > 0 ? startIndex + 1 : 0}–{endIndex} of {totalItems} transactions
+            {/* Table Footer: Range & Pagination */}
+            <div className="border-t border-[#233a30] p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+              <p className="text-[#7a9187] tabular-nums">
+                Showing {totalItems > 0 ? startIndex + 1 : 0}&ndash;{endIndex} of {totalItems} transactions
               </p>
 
               {/* Pagination Controls */}
               <div className="flex items-center gap-1.5">
-                {/* Previous Button */}
+                {/* Previous */}
                 <button
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage <= 1}
                   aria-label="Previous page"
-                  className="p-1.5 rounded-lg bg-[#10231B] border border-[#294438] text-[#91AAA0] hover:text-[#F4F1E8] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-1.5 rounded-md bg-[#071410] border border-[#233a30] text-[#7a9187] hover:text-[#F4F1E8] disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-150"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
 
-                {/* Page Number Buttons */}
+                {/* Page Numbers */}
                 {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => (
                   <button
                     key={pageNum}
                     type="button"
                     onClick={() => setCurrentPage(pageNum)}
-                    className={`w-7 h-7 rounded-lg text-xs font-semibold transition-all ${
+                    className={`w-7 h-7 rounded-md text-xs font-semibold transition-all duration-150 tabular-nums ${
                       currentPage === pageNum
-                        ? 'bg-[#6ED6A8] text-[#071410] font-bold shadow-xs'
-                        : 'bg-[#10231B] border border-[#294438] text-[#91AAA0] hover:text-[#F4F1E8]'
+                        ? 'bg-[#8BE3BB] text-[#071410] font-bold'
+                        : 'bg-[#071410] border border-[#233a30] text-[#7a9187] hover:text-[#F4F1E8]'
                     }`}
                   >
                     {pageNum}
                   </button>
                 ))}
 
-                {/* Next Button */}
+                {/* Next */}
                 <button
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
                   aria-label="Next page"
-                  className="p-1.5 rounded-lg bg-[#10231B] border border-[#294438] text-[#91AAA0] hover:text-[#F4F1E8] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-1.5 rounded-md bg-[#071410] border border-[#233a30] text-[#7a9187] hover:text-[#F4F1E8] disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-150"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -714,7 +708,7 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
         )}
       </div>
 
-      {/* Real-time Settlement Tracker Modal Affordance */}
+      {/* Settlement Tracker Modal */}
       {selectedTransfer && (
         <SettlementTrackerModal
           transfer={selectedTransfer}
