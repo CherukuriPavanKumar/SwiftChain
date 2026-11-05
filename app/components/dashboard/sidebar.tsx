@@ -95,9 +95,7 @@ export function Sidebar({ activeTab, onTabChange, mobileOpen, onMobileClose }: S
           {/* Brand Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#0d1e17] border border-[#233a30] flex items-center justify-center">
-                <SwiftChainLogo className="w-4 h-4 text-[#8BE3BB]" />
-              </div>
+              <SwiftChainLogo className="w-8 h-8" />
               <div>
                 <h1 className="text-base font-bold text-[#F4F1E8] tracking-tight leading-none">
                   SwiftChain

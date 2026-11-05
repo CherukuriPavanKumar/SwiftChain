@@ -20,7 +20,7 @@ export default function SignUpPage() {
           className="flex items-center gap-2.5 group"
           aria-label="SwiftChain Home"
         >
-          <SwiftChainLogo className="w-5 h-5 text-[#8BE3BB]" />
+          <SwiftChainLogo className="w-7 h-7" />
           <span className="text-base font-bold text-[#F4F1E8] tracking-tight">
             SwiftChain
           </span>

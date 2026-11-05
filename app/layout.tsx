@@ -14,8 +14,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SwiftChain",
-  description: "Crypto Project by pavankumar",
+  title: "SwiftChain — Global Payments, Reimagined",
+  description:
+    "SwiftChain is a blockchain-powered remittance prototype exploring a simpler, more transparent way to move money across borders using stablecoins.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/logo-32.png", type: "image/png", sizes: "32x32" },
+    ],
+    apple: { url: "/logo-192.png", type: "image/png" },
+  },
+  openGraph: {
+    title: "SwiftChain — Global Payments, Reimagined",
+    description:
+      "Blockchain-powered remittance prototype on Ethereum Sepolia.",
+    images: [{ url: "/logo-192.png", width: 192, height: 192 }],
+  },
 };
 
 export default function RootLayout({

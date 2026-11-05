@@ -147,7 +147,7 @@ export default function LandingClient() {
         <div className="max-w-6xl mx-auto px-6 h-18 flex items-center justify-between gap-6">
           {/* Brand Mark */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0 group" aria-label="SwiftChain Home">
-            <SwiftChainLogo className="w-5 h-5 text-[#8BE3BB] group-hover:scale-105 transition-transform" />
+            <SwiftChainLogo className="w-7 h-7 group-hover:scale-105 transition-transform" />
             <span className="text-base font-bold text-[#F4F1E8] tracking-tight">SwiftChain</span>
           </Link>
 
@@ -217,7 +217,7 @@ export default function LandingClient() {
           <div className="relative ml-auto w-64 h-full bg-[#10231B] border-l border-[#294438] flex flex-col p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-2">
-                <SwiftChainLogo className="w-4 h-4 text-[#8BE3BB]" />
+                <SwiftChainLogo className="w-6 h-6" />
                 <span className="text-sm font-bold text-[#F4F1E8]">SwiftChain</span>
               </div>
               <button
@@ -493,7 +493,7 @@ export default function LandingClient() {
       <footer className="border-t border-[#294438]/60 py-10 px-6 bg-[#050e0b]">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <SwiftChainLogo className="w-5 h-5 text-[#8BE3BB]" />
+            <SwiftChainLogo className="w-7 h-7" />
             <div>
               <span className="text-sm font-bold text-[#F4F1E8] tracking-tight">SwiftChain</span>
               <span className="text-[10px] uppercase tracking-wider text-[#91AAA0] font-medium ml-2.5">

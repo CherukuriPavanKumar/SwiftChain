@@ -53,14 +53,13 @@ export function UsdcIcon({ className = "w-9 h-9" }: { className?: string }) {
 
 export function SwiftChainLogo({ className = "w-7 h-7" }: { className?: string }) {
   return (
-    <div className={`text-[#8BE3BB] flex items-center justify-center ${className}`}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
-        <path d="m4 8 4-4 4 4" />
-        <path d="M8 4v10a4 4 0 0 0 4 4h8" />
-        <path d="m20 16-4 4-4-4" />
-        <path d="M16 20V10a4 4 0 0 0-4-4H4" />
-      </svg>
-    </div>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/logo.png"
+      alt="SwiftChain"
+      className={`object-contain shrink-0 ${className}`}
+      draggable={false}
+    />
   );
 }
 
