@@ -13,7 +13,13 @@ import {
 } from "wagmi";
 import { useQueryClient } from "@tanstack/react-query";
 import type { RemittanceQuote } from "@/types/quote";
-import { formatINR, formatUSD, formatTokenAmount } from "@/lib/quote";
+import {
+  formatINR,
+  formatUSD,
+  formatTokenAmount,
+  formatGasFeeEth,
+  truncateAddress,
+} from "@/lib/format";
 import { useTokenBalances } from "@/hooks/use-token-balances";
 import { ERC20_MINIMAL_ABI, SUPPORTED_TOKENS } from "@/lib/tokens";
 import SettlementTrackerModal from "./settlement-tracker-modal";
@@ -291,7 +297,11 @@ export default function TransferReviewModal({
     }
   }
 
-  const shortRecipient = `${recipientAddress.slice(0, 8)}...${recipientAddress.slice(-6)}`;
+  const formattedGas = formatGasFeeEth(
+    quote.fees.estimatedGasUnits * quote.fees.estimatedGasPriceWei,
+    "wei"
+  );
+  const shortRecipient = truncateAddress(recipientAddress, 8, 6);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
@@ -395,7 +405,7 @@ export default function TransferReviewModal({
               <span className="block text-[10px] text-gray-500">Paid in Sepolia ETH by sender</span>
             </div>
             <div className="text-right">
-              <span className="font-mono text-gray-300">{quote.fees.estimatedNetworkFeeEth.slice(0, 8)} ETH</span>
+              <span className="font-mono text-gray-300">{formattedGas.formatted}</span>
               <span className="block text-[10px] text-gray-500">≈ {formatINR(quote.fees.estimatedNetworkFeeInr)}</span>
             </div>
           </div>

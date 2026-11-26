@@ -6,6 +6,8 @@ import Image from 'next/image'
 import { useEthPrice } from '@/app/components/eth-price-ticker'
 import { useTokenBalances } from '@/hooks/use-token-balances'
 import { SUPPORTED_TOKENS } from '@/lib/tokens'
+import { formatApproxFiat, truncateAddress } from '@/lib/format'
+import { calculateAssetInrValue } from '@/lib/pricing'
 import { SendTransaction } from './send-transaction'
 
 export function Connection() {
@@ -17,15 +19,10 @@ export function Connection() {
   const isSepolia = chainId === sepolia.id
   const { data: ethPrice } = useEthPrice()
 
-  const { ethFormatted, isEthLoading, usdcFormatted, isUsdcLoading } = useTokenBalances()
+  const { ethRaw, ethFormatted, isEthLoading, usdcDisplayFormatted, isUsdcLoading } = useTokenBalances()
 
-  const numericEth = parseFloat(ethFormatted)
-  const ethBalanceInr =
-    ethPrice?.inr && !isNaN(numericEth) && numericEth > 0
-      ? numericEth * ethPrice.inr
-      : null
-
-  const shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : ''
+  const ethBalanceInr = calculateAssetInrValue(ethRaw, 'ETH', ethPrice)
+  const shortAddress = address ? truncateAddress(address) : ''
 
   return (
     <div className="space-y-4">
@@ -73,7 +70,7 @@ export function Connection() {
             </div>
             {ethBalanceInr !== null && (
               <div className="text-[10px] text-gray-500">
-                ≈ ₹{ethBalanceInr.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                {formatApproxFiat(ethBalanceInr, 'INR')}
               </div>
             )}
           </div>
@@ -85,7 +82,7 @@ export function Connection() {
               <span className="text-blue-400 font-bold">$</span>
             </div>
             <div className="font-mono font-semibold text-emerald-400 text-xs">
-              {isUsdcLoading ? <span className="animate-pulse text-gray-500">...</span> : `${parseFloat(usdcFormatted).toFixed(2)} USDC`}
+              {isUsdcLoading ? <span className="animate-pulse text-gray-500">...</span> : `${usdcDisplayFormatted} USDC`}
             </div>
             <div className="text-[10px] text-gray-500">
               6 Decimals · ERC-20

@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useConnection, useAccount, useBlockNumber, useGasPrice, useConnect, useConnectors } from 'wagmi';
 import { sepolia } from 'wagmi/chains';
-import { formatEther } from 'viem';
 import { useQuery } from '@tanstack/react-query';
 import {
   Eye,
@@ -24,10 +23,20 @@ import {
   Clock,
 } from 'lucide-react';
 import { useTokenBalances } from '@/hooks/use-token-balances';
-import { useEthPrice } from '@/app/components/eth-price-ticker';
+import { useMarketSnapshot } from '@/app/components/eth-price-ticker';
 import { fetchTransfers } from '@/lib/transfer-client';
 import { EthereumIcon, UsdcIcon } from './token-icons';
 import type { TransferRecord } from '@/app/transfer-history';
+import {
+  formatApproxFiat,
+  formatDateTimeParts,
+  formatGasFeeEth,
+  formatINR,
+  formatUSD,
+  truncateAddress,
+} from '@/lib/format';
+import { calculateAssetInrValue, calculatePortfolioValuation } from '@/lib/pricing';
+import { DEFAULT_ETH_TRANSFER_GAS_UNITS } from '@/lib/quote';
 
 interface WalletViewProps {
   onNavigateToSend?: (asset?: 'ETH' | 'USDC') => void;
@@ -43,49 +52,6 @@ interface CustomToken {
   address: string;
   balance: string;
   decimals: number;
-}
-
-function shortAddr(addr: string | null | undefined, head = 6, tail = 4): string {
-  if (!addr) return 'Not connected';
-  if (addr.length < head + tail + 3) return addr;
-  return `${addr.slice(0, head)}\u2026${addr.slice(-tail)}`;
-}
-
-function formatFiatINR(value: number) {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-}
-
-function formatFiatUSD(value: number) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-}
-
-function formatDateParts(isoDate: string) {
-  try {
-    const d = new Date(isoDate);
-    const dateStr = new Intl.DateTimeFormat('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    }).format(d);
-    const timeStr = new Intl.DateTimeFormat('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    }).format(d);
-    return { dateStr, timeStr };
-  } catch {
-    return { dateStr: 'Recent', timeStr: '' };
-  }
 }
 
 function CopyButton({ value, className = '' }: { value?: string; className?: string }) {
@@ -542,8 +508,8 @@ export function WalletView({
     }
   }
 
-  const { ethFormatted, usdcFormatted, isEthLoading, isUsdcLoading } = useTokenBalances();
-  const { data: marketData } = useEthPrice();
+  const { ethRaw, usdcRaw, ethFormatted, usdcDisplayFormatted, isEthLoading, isUsdcLoading } = useTokenBalances();
+  const { data: marketData, dataUpdatedAt } = useMarketSnapshot();
 
   const [hiddenBalance, setHiddenBalance] = useState(false);
   const [currencyUnit, setCurrencyUnit] = useState<CurrencyUnit>('INR');
@@ -587,40 +553,38 @@ export function WalletView({
 
   const isSepolia = chainId === sepolia.id;
 
-  const { data: blockNumber, isLoading: isBlockLoading } = useBlockNumber({
+  const {
+    data: blockNumber,
+    isLoading: isBlockLoading,
+    isError: isBlockError,
+  } = useBlockNumber({
     chainId: sepolia.id,
     watch: true,
   });
-  const { data: gasPriceWei, isLoading: isGasLoading } = useGasPrice({ chainId: sepolia.id });
+  const {
+    data: gasPriceWei,
+    isLoading: isGasLoading,
+    isError: isGasError,
+  } = useGasPrice({ chainId: sepolia.id });
 
-  const formattedGasFee = useMemo(() => {
-    if (!gasPriceWei) return null;
-    try {
-      const cost = gasPriceWei * BigInt(21000);
-      return parseFloat(formatEther(cost)).toFixed(6) + ' ETH';
-    } catch {
-      return null;
-    }
+  const gasFeeDisplay = useMemo(() => {
+    if (!gasPriceWei) return formatGasFeeEth(null);
+    return formatGasFeeEth(gasPriceWei * DEFAULT_ETH_TRANSFER_GAS_UNITS, 'wei');
   }, [gasPriceWei]);
-
-  const ethPriceInr = marketData?.ethereum?.inr ?? marketData?.inr ?? 230000;
-  const ethPriceUsd = marketData?.ethereum?.usd ?? 2400;
-  const usdcPriceInr = marketData?.usdc?.inr ?? marketData?.fiatReference?.inrPerUsd ?? 94.88;
-  const usdcPriceUsd = marketData?.usdc?.usd ?? 1.0;
 
   const isWalletConnected = Boolean(isConnected && address);
 
-  const ethAmount = isWalletConnected ? (parseFloat(ethFormatted) || 0) : 0;
-  const usdcAmount = isWalletConnected ? (parseFloat(usdcFormatted) || 0) : 0;
-
-  const ethValueInr = ethAmount * ethPriceInr;
-  const usdcValueInr = usdcAmount * usdcPriceInr;
-  const totalInr = ethValueInr + usdcValueInr;
-  const totalEthEquivalent = ethPriceInr > 0 ? totalInr / ethPriceInr : ethAmount;
-
-  const ethValueUsd = ethAmount * ethPriceUsd;
-  const usdcValueUsd = usdcAmount * usdcPriceUsd;
-  const totalUsd = ethValueUsd + usdcValueUsd;
+  const valuation = useMemo(
+    () =>
+      calculatePortfolioValuation({
+        ethRaw,
+        usdcRaw,
+        marketData,
+        isConnected: isWalletConnected,
+        fetchedAtMs: dataUpdatedAt || undefined,
+      }),
+    [ethRaw, usdcRaw, marketData, isWalletConnected, dataUpdatedAt]
+  );
 
   const { data: transfers, isLoading: isTxLoading, error: txError } = useQuery<TransferRecord[]>({
     queryKey: ['transfers', address],
@@ -633,34 +597,53 @@ export function WalletView({
   function txFiatLabel(tx: TransferRecord): string {
     if (tx.inrSourceAmount) {
       const n = parseFloat(tx.inrSourceAmount);
-      if (!isNaN(n) && n > 0)
-        return `\u2248 \u20b9${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      if (Number.isFinite(n) && n > 0) return formatApproxFiat(n, 'INR');
     }
-    const amt = parseFloat(tx.amount) || 0;
-    if (tx.assetSymbol === 'USDC' && usdcPriceInr)
-      return `\u2248 \u20b9${(amt * usdcPriceInr).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    if (tx.assetSymbol === 'ETH' && ethPriceInr)
-      return `\u2248 \u20b9${(amt * ethPriceInr).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    return '';
+    const valInr = calculateAssetInrValue(tx.amount, tx.assetSymbol, marketData);
+    return valInr !== null ? formatApproxFiat(valInr, 'INR') : '';
   }
 
   const mask = (v: string) =>
-    v.replace(/[\d,.]/g, (c) => (c === ',' || c === '.' ? c : '\u2022'));
+    v.replace(/[\d,.]/g, (c) => (c === ',' || c === '.' ? c : '•'));
 
-  let formattedTotalMain = isWalletConnected ? formatFiatINR(totalInr) : '\u20b90.00';
+  const ethValueInr = valuation.ethValueInr;
+  const usdcValueInr = valuation.usdcValueInr;
+  const totalInr = valuation.totalInr;
+  const totalUsd = valuation.totalUsd;
+  const totalEthEquivalent = valuation.ethEquivalentTotal;
+
+  let formattedTotalMain = isWalletConnected
+    ? totalInr !== null
+      ? formatINR(totalInr)
+      : 'Rate unavailable'
+    : '₹0.00';
   let formattedTotalSub = isWalletConnected
-    ? `\u2248 ${totalEthEquivalent.toFixed(4)} ETH`
+    ? totalEthEquivalent !== null
+      ? `≈ ${totalEthEquivalent.toFixed(4)} ETH equivalent`
+      : 'Indicative rate unavailable'
     : 'Connect wallet to view balances';
 
   if (currencyUnit === 'USD') {
-    formattedTotalMain = isWalletConnected ? formatFiatUSD(totalUsd) : '$0.00';
+    formattedTotalMain = isWalletConnected
+      ? totalUsd !== null
+        ? formatUSD(totalUsd)
+        : 'Rate unavailable'
+      : '$0.00';
     formattedTotalSub = isWalletConnected
-      ? `\u2248 ${totalEthEquivalent.toFixed(4)} ETH`
+      ? totalEthEquivalent !== null
+        ? `≈ ${totalEthEquivalent.toFixed(4)} ETH equivalent`
+        : 'Indicative rate unavailable'
       : 'Connect wallet to view balances';
   } else if (currencyUnit === 'ETH') {
-    formattedTotalMain = isWalletConnected ? `${totalEthEquivalent.toFixed(4)} ETH` : '0.0000 ETH';
+    formattedTotalMain = isWalletConnected
+      ? totalEthEquivalent !== null
+        ? `${totalEthEquivalent.toFixed(4)} ETH eq.`
+        : `${valuation.ethAmount.toFixed(4)} ETH`
+      : '0.0000 ETH';
     formattedTotalSub = isWalletConnected
-      ? `\u2248 ${formatFiatINR(totalInr)}`
+      ? totalInr !== null
+        ? `≈ ${formatINR(totalInr)}`
+        : 'Indicative rate unavailable'
       : 'Connect wallet to view balances';
   }
 
@@ -728,7 +711,7 @@ export function WalletView({
                 {hiddenBalance ? mask(formattedTotalMain) : formattedTotalMain}
               </p>
               <p className="text-xs text-[#7a9187] font-mono tabular-nums mt-1">
-                {hiddenBalance ? '\u2248 \u2022\u2022\u2022\u2022' : formattedTotalSub}
+                {hiddenBalance ? '≈ ••••' : formattedTotalSub}
               </p>
             </div>
           </div>
@@ -824,17 +807,29 @@ export function WalletView({
                         ) : (
                           <div>
                             <p className="font-mono font-bold text-[#F4F1E8] tabular-nums text-xs">
-                              {hiddenBalance ? '\u2022\u2022\u2022\u2022' : isWalletConnected ? ethFormatted : '0.0000'}
+                              {hiddenBalance ? '••••' : isWalletConnected ? ethFormatted : '0.0000'}
                             </p>
                             <p className="text-xs text-[#7a9187] font-mono mt-0.5 tabular-nums">
-                              {hiddenBalance ? '' : isWalletConnected ? `\u2248 ${formatFiatINR(ethValueInr)}` : '\u2248 \u20b90.00'}
+                              {hiddenBalance
+                                ? ''
+                                : isWalletConnected
+                                  ? ethValueInr !== null
+                                    ? `≈ ${formatINR(ethValueInr)}`
+                                    : 'Rate unavailable'
+                                  : '≈ ₹0.00'}
                             </p>
                           </div>
                         )}
                       </td>
                       <td className="px-3 py-3.5">
                         <p className="font-mono font-semibold text-[#F4F1E8] tabular-nums text-xs">
-                          {hiddenBalance ? '\u2022\u2022\u2022\u2022\u2022' : isWalletConnected ? formatFiatINR(ethValueInr) : '\u20b90.00'}
+                          {hiddenBalance
+                            ? '•••••'
+                            : isWalletConnected
+                              ? ethValueInr !== null
+                                ? formatINR(ethValueInr)
+                                : 'Unavailable'
+                              : '₹0.00'}
                         </p>
                       </td>
                       <td className="px-5 py-3.5 text-right">
@@ -844,7 +839,7 @@ export function WalletView({
                             onClick={() => onNavigateToSend?.('ETH')}
                             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${innerCls} text-xs font-semibold text-[#F4F1E8] hover:border-[#8BE3BB]/40 hover:text-[#8BE3BB] transition-colors duration-150`}
                           >
-                            <span className="text-xs">\u20b9</span>
+                            <Send className="w-3 h-3" />
                             <span>Send</span>
                           </button>
                           <AssetActionMenu
@@ -877,20 +872,32 @@ export function WalletView({
                           <div>
                             <p className="font-mono font-bold text-[#F4F1E8] tabular-nums text-xs">
                               {hiddenBalance
-                                ? '\u2022\u2022\u2022\u2022'
+                                ? '••••'
                                 : isWalletConnected
-                                ? (parseFloat(usdcFormatted) ? parseFloat(usdcFormatted).toFixed(2) : '0.00')
+                                ? usdcDisplayFormatted
                                 : '0.00'}
                             </p>
                             <p className="text-xs text-[#7a9187] font-mono mt-0.5 tabular-nums">
-                              {hiddenBalance ? '' : isWalletConnected ? `\u2248 ${formatFiatINR(usdcValueInr)}` : '\u2248 \u20b90.00'}
+                              {hiddenBalance
+                                ? ''
+                                : isWalletConnected
+                                  ? usdcValueInr !== null
+                                    ? `≈ ${formatINR(usdcValueInr)}`
+                                    : 'Rate unavailable'
+                                  : '≈ ₹0.00'}
                             </p>
                           </div>
                         )}
                       </td>
                       <td className="px-3 py-3.5">
                         <p className="font-mono font-semibold text-[#F4F1E8] tabular-nums text-xs">
-                          {hiddenBalance ? '\u2022\u2022\u2022\u2022\u2022' : isWalletConnected ? formatFiatINR(usdcValueInr) : '\u20b90.00'}
+                          {hiddenBalance
+                            ? '•••••'
+                            : isWalletConnected
+                              ? usdcValueInr !== null
+                                ? formatINR(usdcValueInr)
+                                : 'Unavailable'
+                              : '₹0.00'}
                         </p>
                       </td>
                       <td className="px-5 py-3.5 text-right">
@@ -900,7 +907,7 @@ export function WalletView({
                             onClick={() => onNavigateToSend?.('USDC')}
                             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${innerCls} text-xs font-semibold text-[#F4F1E8] hover:border-[#8BE3BB]/40 hover:text-[#8BE3BB] transition-colors duration-150`}
                           >
-                            <span className="text-xs">\u20b9</span>
+                            <Send className="w-3 h-3" />
                             <span>Send</span>
                           </button>
                           <AssetActionMenu
@@ -1008,7 +1015,7 @@ export function WalletView({
                     <p className="text-sm font-semibold text-[#F4F1E8]">No transactions yet</p>
                     <p className="text-xs text-[#7a9187] max-w-xs mx-auto">
                       {isWalletConnected
-                        ? "You haven\u2019t made any testnet transfers yet. Use Send money to make your first transfer."
+                        ? "You haven’t made any testnet transfers yet. Use Send money to make your first transfer."
                         : "Connect your wallet and complete a transfer to see your activity here."}
                     </p>
                   </div>
@@ -1032,7 +1039,7 @@ export function WalletView({
                       {recentList.map((tx, idx) => {
                         const isEth = tx.assetSymbol === 'ETH';
                         const isSend = !address || tx.senderAddress?.toLowerCase() === address.toLowerCase();
-                        const { dateStr, timeStr } = formatDateParts(tx.createdAt);
+                        const { dateStr, timeStr } = formatDateTimeParts(tx.createdAt);
                         const fiatLabel = txFiatLabel(tx);
 
                         return (
@@ -1117,7 +1124,7 @@ export function WalletView({
                   <span className="text-[#7a9187] shrink-0">Address</span>
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="font-mono text-[#F4F1E8] truncate font-medium tabular-nums">
-                      {isWalletConnected ? shortAddr(address, 7, 4) : 'Not connected'}
+                      {isWalletConnected ? truncateAddress(address, 7, 4) : 'Not connected'}
                     </span>
                     {isWalletConnected && <CopyButton value={address} />}
                   </div>
@@ -1148,7 +1155,7 @@ export function WalletView({
                 <div className="flex items-center justify-between py-2.5">
                   <span className="text-[#7a9187]">Connected since</span>
                   <span className="font-medium text-[#F4F1E8]">
-                    {isWalletConnected ? connectedTimeStr || 'This session' : '\u2014'}
+                    {isWalletConnected ? connectedTimeStr || 'This session' : '—'}
                   </span>
                 </div>
               </div>
@@ -1158,9 +1165,25 @@ export function WalletView({
             <div className={`${cardCls} p-5 space-y-3.5`}>
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold text-[#F4F1E8]">Network status</h3>
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium text-[#6ED6A8] bg-[#071410] border border-[#233a30]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#6ED6A8]" />
-                  Healthy
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-[#071410] border ${
+                    isBlockLoading
+                      ? 'text-[#a6b8b0] border-[#233a30]'
+                      : blockNumber && !isBlockError
+                        ? 'text-[#6ED6A8] border-[#233a30]'
+                        : 'text-[#F2C66D] border-[#3d3215]'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      isBlockLoading
+                        ? 'bg-[#7a9187]'
+                        : blockNumber && !isBlockError
+                          ? 'bg-[#6ED6A8]'
+                          : 'bg-[#F2C66D]'
+                    }`}
+                  />
+                  {isBlockLoading ? 'Checking' : blockNumber && !isBlockError ? 'RPC reachable' : 'RPC unavailable'}
                 </span>
               </div>
 
@@ -1173,22 +1196,21 @@ export function WalletView({
                 <div className="flex items-center justify-between py-2.5">
                   <span className="text-[#7a9187]">Block number</span>
                   <span className="font-mono font-medium text-[#F4F1E8] tabular-nums">
-                    {isBlockLoading ? 'Syncing\u2026' : blockNumber ? Number(blockNumber).toLocaleString('en-US') : '\u2014'}
+                    {isBlockLoading ? 'Syncing…' : blockNumber ? Number(blockNumber).toLocaleString('en-US') : 'Unavailable'}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between py-2.5">
-                  <span className="text-[#7a9187]">Avg gas fee</span>
+                  <span className="text-[#7a9187]">Base transfer gas</span>
                   <span className="font-mono font-medium text-[#F4F1E8] tabular-nums">
-                    {isGasLoading ? 'Syncing\u2026' : formattedGasFee || '\u2014'}
+                    {isGasLoading ? 'Syncing…' : isGasError ? 'Unavailable' : gasFeeDisplay.formatted}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between py-2.5">
-                  <span className="text-[#7a9187]">Status</span>
-                  <span className="inline-flex items-center gap-1.5 font-medium text-[#6ED6A8]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#6ED6A8]" />
-                    Operational
+                  <span className="text-[#7a9187]">RPC status</span>
+                  <span className="font-medium text-[#F4F1E8]">
+                    {isBlockLoading ? 'Checking…' : blockNumber && !isBlockError ? 'Receiving blocks' : 'Unavailable'}
                   </span>
                 </div>
               </div>

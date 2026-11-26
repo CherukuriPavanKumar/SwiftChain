@@ -8,16 +8,17 @@ import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { EthereumIcon, UsdcIcon } from './token-icons';
 import SettlementTrackerModal, { type SettlementTrackerData } from '@/app/components/settlement-tracker-modal';
 import { useEthPrice } from '@/app/components/eth-price-ticker';
+import {
+  formatApproxFiat,
+  formatDateTimeParts,
+  truncateAddress,
+} from '@/lib/format';
+import { calculateAssetInrValue } from '@/lib/pricing';
 
 import { useConnection } from 'wagmi';
 
 interface RecentTransactionsProps {
   onViewAll?: () => void;
-}
-
-function truncateAddress(addr: string) {
-  if (!addr || addr.length < 10) return addr;
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
 // Contextual purpose labels based on recipient address or index
@@ -48,34 +49,12 @@ export function RecentTransactions({ onViewAll }: RecentTransactionsProps) {
   function formatFiat(tx: TransferRecord): string {
     if (tx.inrSourceAmount) {
       const num = parseFloat(tx.inrSourceAmount);
-      return `≈ ₹${num.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+      if (Number.isFinite(num) && num > 0) {
+        return formatApproxFiat(num, 'INR');
+      }
     }
-    const tokenAmount = parseFloat(tx.amount) || 0;
-    if (tx.assetSymbol === 'USDC') {
-      const rate = marketData?.usdc?.inr ?? marketData?.fiatReference?.inrPerUsd ?? 94.88;
-      return `≈ ₹${(tokenAmount * rate).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
-    }
-    const rate = marketData?.ethereum?.inr ?? marketData?.inr ?? 230000;
-    return `≈ ₹${(tokenAmount * rate).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
-  }
-
-  function formatDateParts(isoDate: string) {
-    try {
-      const d = new Date(isoDate);
-      const dateStr = new Intl.DateTimeFormat('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }).format(d);
-      const timeStr = new Intl.DateTimeFormat('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-      }).format(d);
-      return { dateStr, timeStr };
-    } catch {
-      return { dateStr: 'Recent', timeStr: '' };
-    }
+    const valInr = calculateAssetInrValue(tx.amount, tx.assetSymbol, marketData);
+    return formatApproxFiat(valInr, 'INR');
   }
 
   return (
@@ -144,7 +123,7 @@ export function RecentTransactions({ onViewAll }: RecentTransactionsProps) {
                   const isConfirmed = tx.status === 'confirmed';
                   const isPending = tx.status === 'pending' || tx.status === 'awaiting signature';
                   const isFailed = tx.status === 'failed' || tx.status === 'rejected';
-                  const { dateStr, timeStr } = formatDateParts(tx.createdAt);
+                  const { dateStr, timeStr } = formatDateTimeParts(tx.createdAt);
                   const fiat = formatFiat(tx);
                   const label = getRecipientLabel(tx, idx);
                   const shortInitials = tx.recipientAddress.slice(2, 4).toUpperCase();

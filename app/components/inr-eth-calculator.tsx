@@ -7,12 +7,16 @@ import { useConnection, useGasPrice, useEstimateGas } from "wagmi";
 import { useEthPrice } from "./eth-price-ticker";
 import {
   calculateRemittanceQuote,
-  formatINR,
-  formatUSD,
-  formatTokenAmount,
   DEFAULT_ETH_TRANSFER_GAS_UNITS,
   DEFAULT_ERC20_TRANSFER_GAS_UNITS,
 } from "@/lib/quote";
+import {
+  formatINR,
+  formatUSD,
+  formatTokenAmount,
+  formatGasFeeEth,
+} from "@/lib/format";
+import { getMarketSnapshot } from "@/lib/pricing";
 import { SUPPORTED_TOKENS, type SupportedAssetSymbol } from "@/lib/tokens";
 import TransferReviewModal from "./transfer-review-modal";
 
@@ -42,16 +46,17 @@ export default function InrEthCalculator() {
   const isValidRecipient = recipient ? isAddress(recipient) : false;
 
   // Gas estimation if recipient is valid
+  const snapshot = getMarketSnapshot(marketData);
   const validTo = isValidRecipient ? (recipient as `0x${string}`) : undefined;
   let estimatedValue: bigint | undefined;
   try {
-    if (marketData && isValidAmount) {
+    if (snapshot.available && isValidAmount) {
       const tokenPrice =
-        selectedAsset === "USDC"
-          ? (marketData.usdc?.inr ?? marketData.fiatReference?.inrPerUsd ?? 94.88)
-          : marketData.inr;
-      const tokenRough = (parsedInr / tokenPrice).toFixed(6);
-      estimatedValue = parseUnits(tokenRough, SUPPORTED_TOKENS[selectedAsset].decimals);
+        selectedAsset === "USDC" ? snapshot.usdcInr : snapshot.ethInr;
+      if (tokenPrice && tokenPrice > 0) {
+        const tokenRough = (parsedInr / tokenPrice).toFixed(6);
+        estimatedValue = parseUnits(tokenRough, SUPPORTED_TOKENS[selectedAsset].decimals);
+      }
     }
   } catch {
     estimatedValue = undefined;
@@ -89,16 +94,16 @@ export default function InrEthCalculator() {
   // Converter calculation
   function computeConverterResult(): string {
     const num = parseFloat(converterInput);
-    if (!marketData || isNaN(num) || num <= 0) return "—";
+    if (!snapshot.available) return "Rate unavailable";
+    if (isNaN(num) || num <= 0) return "—";
 
     const targetPrice =
-      selectedAsset === "USDC"
-        ? (marketData.usdc?.inr ?? marketData.fiatReference?.inrPerUsd ?? 94.88)
-        : marketData.inr;
+      selectedAsset === "USDC" ? snapshot.usdcInr : snapshot.ethInr;
+    if (!targetPrice || targetPrice <= 0) return "Rate unavailable";
 
     if (converterMode === "inr-to-crypto") {
       const tokens = num / targetPrice;
-      return `${tokens.toFixed(selectedAsset === "USDC" ? 2 : 6)} ${selectedAsset}`;
+      return formatTokenAmount(tokens, selectedAsset);
     } else {
       const inr = num * targetPrice;
       return formatINR(inr);
@@ -243,7 +248,9 @@ export default function InrEthCalculator() {
                 </div>
                 <div className="flex justify-between items-center text-[11px] text-gray-400">
                   <span>Est. Network Fee (Gas):</span>
-                  <span>~{quote.fees.estimatedNetworkFeeEth.slice(0, 8)} ETH ({formatINR(quote.fees.estimatedNetworkFeeInr)})</span>
+                  <span>
+                    {formatGasFeeEth(quote.fees.estimatedGasUnits * quote.fees.estimatedGasPriceWei, "wei").formatted} ({formatINR(quote.fees.estimatedNetworkFeeInr)})
+                  </span>
                 </div>
                 <div className="flex justify-between items-center text-[11px] text-gray-400">
                   <span>Platform Fee:</span>

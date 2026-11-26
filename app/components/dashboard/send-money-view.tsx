@@ -29,9 +29,16 @@ import {
 } from 'lucide-react';
 import { EthereumIcon, UsdcIcon } from './token-icons';
 import { useTokenBalances } from '@/hooks/use-token-balances';
-import { useEthPrice } from '@/app/components/eth-price-ticker';
+import { useMarketSnapshot } from '@/app/components/eth-price-ticker';
 import { SUPPORTED_TOKENS, ERC20_MINIMAL_ABI, type SupportedAssetSymbol } from '@/lib/tokens';
-import { createTransfer, updateTransfer } from '@/lib/transfer-client';
+import { createTransfer } from '@/lib/transfer-client';
+import { calculateAssetInrValue } from '@/lib/pricing';
+import {
+  formatApproxFiat,
+  formatGasFeeEth,
+  formatINR,
+  truncateAddress,
+} from '@/lib/format';
 import SettlementTrackerModal, { type SettlementTrackerData } from '@/app/components/settlement-tracker-modal';
 import { ConnectWallet } from '@/wagmi/web_provider';
 
@@ -39,18 +46,13 @@ interface SendMoneyViewProps {
   initialAsset?: SupportedAssetSymbol;
 }
 
-function truncateAddress(addr: string) {
-  if (!addr || addr.length < 10) return addr;
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-}
-
 export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
   const queryClient = useQueryClient();
   const { address, chainId, isConnected } = useConnection();
   const { connect, connectors } = useConnect();
   const { switchChain, isPending: isSwitchingChain } = useSwitchChain();
-  const { data: marketData } = useEthPrice();
-  const { ethRaw, usdcRaw, ethFormatted, usdcFormatted, refetchAll } = useTokenBalances();
+  const { data: marketData, snapshot: marketSnapshot } = useMarketSnapshot();
+  const { ethRaw, usdcRaw, ethFormatted, usdcDisplayFormatted, usdcFormatted, refetchAll } = useTokenBalances();
   const { data: gasPriceWei } = useGasPrice({ chainId: sepolia.id });
 
   const isSepolia = chainId === sepolia.id;
@@ -134,33 +136,37 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
   const isSending = selectedAsset === 'ETH' ? isEthSending : isErc20Sending;
   const activeTxHash = selectedAsset === 'ETH' ? ethTxHash : erc20TxHash;
 
-  // Wait for on-chain receipt
+  // Wait for on-chain receipt (pollReceiptAndConfirm handles resilient receipt check)
   const { data: receipt, isLoading: isConfirming } = useWaitForTransactionReceipt({
     hash: activeTxHash,
   });
 
-  // Automatically update status on receipt confirmation
+  // Note: updateTransfer on receipt handled below in useEffect if needed
   useEffect(() => {
     if (receipt?.status === 'success' && activeTxHash) {
-      updateTransfer({
-        transactionHash: activeTxHash,
-        status: 'confirmed',
-        confirmedAt: new Date().toISOString(),
-        isSimulatedPayout: true,
-        payoutStatus: 'simulated_completed',
-        payoutCompletedAt: new Date().toISOString(),
-      })
-        .then(() => queryClient.invalidateQueries({ queryKey: ['transfers'] }))
-        .catch(console.error);
-
+      import('@/lib/transfer-client').then(({ updateTransfer }) =>
+        updateTransfer({
+          transactionHash: activeTxHash,
+          status: 'confirmed',
+          confirmedAt: new Date().toISOString(),
+          isSimulatedPayout: true,
+          payoutStatus: 'simulated_completed',
+          payoutCompletedAt: new Date().toISOString(),
+        })
+          .then(() => queryClient.invalidateQueries({ queryKey: ['transfers'] }))
+          .catch(console.error)
+      );
       refetchAll().catch(console.error);
     } else if (receipt?.status === 'reverted' && activeTxHash) {
-      updateTransfer({
-        transactionHash: activeTxHash,
-        status: 'failed',
-      })
-        .then(() => queryClient.invalidateQueries({ queryKey: ['transfers'] }))
-        .catch(console.error);
+      import('@/lib/transfer-client').then(({ updateTransfer }) =>
+        updateTransfer({
+          transactionHash: activeTxHash,
+          status: 'failed',
+          payoutStatus: 'failed',
+        })
+          .then(() => queryClient.invalidateQueries({ queryKey: ['transfers'] }))
+          .catch(console.error)
+      );
     }
   }, [receipt, activeTxHash, queryClient, refetchAll]);
 
@@ -172,14 +178,17 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
   const parsedAmount = parseFloat(amount);
   const isValidAmount = !isNaN(parsedAmount) && parsedAmount > 0;
 
-  // Live currency conversions
+  // Live currency conversions from single shared pricing snapshot (never fabricated)
   const tokenRateInr =
-    selectedAsset === 'USDC'
-      ? (marketData?.usdc?.inr ?? marketData?.fiatReference?.inrPerUsd ?? 94.88)
-      : (marketData?.ethereum?.inr ?? marketData?.inr ?? 230000);
+    selectedAsset === 'USDC' ? marketSnapshot.usdcInr : marketSnapshot.ethInr;
 
   const inrEstimate =
-    isValidAmount && tokenRateInr ? parsedAmount * tokenRateInr : 0;
+    isValidAmount ? calculateAssetInrValue(parsedAmount, selectedAsset, marketData) : null;
+
+  const balanceInrEstimate =
+    selectedAsset === 'USDC'
+      ? calculateAssetInrValue(usdcRaw, 'USDC', marketData)
+      : calculateAssetInrValue(ethRaw, 'ETH', marketData);
 
   // Native ETH Gas estimation
   let estimatedEthValue: bigint | undefined;
@@ -207,25 +216,29 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
     query: { enabled: canEstimateGas },
   });
 
-  // Calculate formatted gas estimate
+  // Calculate formatted gas estimate without losing precision or fabricating rates
   const formattedGasEstimate = useMemo(() => {
-    if (isEstimatingGas) return 'Estimating\u2026';
+    if (isEstimatingGas) return 'Estimating…';
     if (gasEstimate && gasPriceWei) {
       const totalGasWei = gasEstimate * gasPriceWei;
-      const ethVal = parseFloat(formatEther(totalGasWei));
-      const inrVal = ethVal * (marketData?.inr ?? 230000);
-      return `${ethVal.toFixed(5)} ETH (\u2248 \u20b9${inrVal.toFixed(2)})`;
+      const gas = formatGasFeeEth(totalGasWei, 'wei');
+      if (gas.numericEth !== null && marketSnapshot.ethInr !== null) {
+        return `${gas.formatted} (${formatApproxFiat(gas.numericEth * marketSnapshot.ethInr, 'INR')})`;
+      }
+      return gas.formatted;
     }
     if (gasPriceWei) {
       const standardUnits =
         selectedAsset === 'USDC' ? BigInt(65000) : BigInt(21000);
       const totalGasWei = standardUnits * gasPriceWei;
-      const ethVal = parseFloat(formatEther(totalGasWei));
-      const inrVal = ethVal * (marketData?.inr ?? 230000);
-      return `~${ethVal.toFixed(5)} ETH (\u2248 \u20b9${inrVal.toFixed(2)})`;
+      const gas = formatGasFeeEth(totalGasWei, 'wei');
+      if (gas.numericEth !== null && marketSnapshot.ethInr !== null) {
+        return `~${gas.formatted} (${formatApproxFiat(gas.numericEth * marketSnapshot.ethInr, 'INR')})`;
+      }
+      return `~${gas.formatted}`;
     }
-    return '--';
-  }, [gasEstimate, gasPriceWei, isEstimatingGas, marketData, selectedAsset]);
+    return 'Fee unavailable until estimated';
+  }, [gasEstimate, gasPriceWei, isEstimatingGas, marketSnapshot.ethInr, selectedAsset]);
 
   // Max balance handler
   function handleMax() {
@@ -233,9 +246,9 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
       setAmount(usdcFormatted);
     } else {
       // Leave 0.001 ETH for gas
-      const num = parseFloat(ethFormatted);
+      const num = parseFloat(formatEther(ethRaw));
       const safeMax = Math.max(0, num - 0.001);
-      setAmount(safeMax.toFixed(4));
+      setAmount(safeMax.toFixed(6));
     }
     setValidationError(null);
   }
@@ -260,7 +273,7 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
     }
 
     if (!isAddress(recipient.trim())) {
-      setValidationError('Invalid Ethereum address. Must be a 42-character 0x\u2026 hex address.');
+      setValidationError('Invalid Ethereum address. Must be a 42-character 0x… hex address.');
       return false;
     }
 
@@ -338,6 +351,13 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
       }
 
       // Record pending transfer in Neon Postgres
+      const estimatedUsd =
+        selectedAsset === 'USDC'
+          ? parsedAmount.toFixed(2)
+          : marketSnapshot.ethUsd !== null
+            ? (parsedAmount * marketSnapshot.ethUsd).toFixed(2)
+            : null;
+
       const created = await createTransfer({
         senderAddress: address!,
         recipientAddress: to,
@@ -345,12 +365,9 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
         chainId: sepolia.id,
         assetSymbol: selectedAsset,
         tokenAddress: selectedAsset === 'USDC' ? SUPPORTED_TOKENS.USDC.contractAddress : null,
-        inrSourceAmount: inrEstimate > 0 ? inrEstimate.toFixed(2) : null,
-        referenceRate: tokenRateInr.toString(),
-        estimatedDestinationUsd:
-          selectedAsset === 'USDC'
-            ? parsedAmount.toFixed(2)
-            : (parsedAmount * (marketData?.usd ?? 2400)).toFixed(2),
+        inrSourceAmount: inrEstimate !== null && inrEstimate > 0 ? inrEstimate.toFixed(2) : null,
+        referenceRate: tokenRateInr !== null ? tokenRateInr.toString() : null,
+        estimatedDestinationUsd: estimatedUsd,
         status: 'pending',
         transactionHash: txHash,
         isSimulatedPayout: true,
@@ -393,7 +410,9 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
         amount,
         assetSymbol: selectedAsset,
         chainId: sepolia.id,
-        inrSourceAmount: inrEstimate > 0 ? inrEstimate.toFixed(2) : null,
+        inrSourceAmount: inrEstimate !== null && inrEstimate > 0 ? inrEstimate.toFixed(2) : null,
+        referenceRate: tokenRateInr !== null ? tokenRateInr.toString() : null,
+        estimatedDestinationUsd: estimatedUsd,
         status: 'pending',
         transactionHash: txHash,
         isSimulatedPayout: true,
@@ -494,7 +513,7 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
                 disabled={isSwitchingChain}
                 className="px-3 py-1 rounded-md bg-[#F2C66D]/15 hover:bg-[#F2C66D]/25 text-xs font-semibold text-[#F2C66D] transition-colors duration-150 shrink-0"
               >
-                {isSwitchingChain ? 'Switching\u2026' : 'Switch to Sepolia'}
+                {isSwitchingChain ? 'Switching…' : 'Switch to Sepolia'}
               </button>
             </div>
           )}
@@ -506,7 +525,7 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
               <div>
                 <h3 className="text-sm font-bold text-[#F4F1E8]">Recipient</h3>
                 <p className="text-xs text-[#7a9187] mt-0.5">
-                  Enter the wallet address or ENS name.
+                  Enter a 42-character Ethereum address.
                 </p>
               </div>
             </div>
@@ -521,7 +540,7 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
                   setRecipient(e.target.value);
                   setValidationError(null);
                 }}
-                placeholder="0x\u2026 or name.eth"
+                placeholder="0x… Ethereum address"
                 spellCheck={false}
                 autoComplete="off"
                 className="w-full bg-transparent border-none outline-none text-xs sm:text-sm font-mono text-[#F4F1E8] placeholder:text-[#7a9187]/50"
@@ -614,7 +633,7 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
                         <div>
                           <p className="text-xs font-bold font-mono tabular-nums">{sym}</p>
                           <p className="text-xs text-[#7a9187]">
-                            {sym === 'USDC' ? 'USD Coin \u00b7 ERC-20' : 'Native Ethereum'}
+                            {sym === 'USDC' ? 'USD Coin · ERC-20' : 'Native Ethereum'}
                           </p>
                         </div>
                       </button>
@@ -657,14 +676,10 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
               <span>
                 Balance:{' '}
                 <span className="font-mono tabular-nums text-[#a6b8b0]">
-                  {selectedAsset === 'USDC' ? `${usdcFormatted} USDC` : `${ethFormatted} ETH`}
+                  {selectedAsset === 'USDC' ? `${usdcDisplayFormatted} USDC` : `${ethFormatted} ETH`}
                 </span>{' '}
                 <span className="font-mono tabular-nums">
-                  (\u2248&nbsp;\u20b9
-                  {selectedAsset === 'USDC'
-                    ? ((parseFloat(usdcFormatted) || 0) * (marketData?.usdc?.inr ?? 94.88)).toLocaleString('en-IN', { maximumFractionDigits: 2 })
-                    : ((parseFloat(ethFormatted) || 0) * (marketData?.inr ?? 230000)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                  )
+                  ({balanceInrEstimate !== null ? formatApproxFiat(balanceInrEstimate, 'INR') : 'Rate unavailable'})
                 </span>
               </span>
             </div>
@@ -709,13 +724,13 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
               }`}
             >
               {isSending ? (
-                <span>Awaiting signature in wallet\u2026</span>
+                <span>Awaiting signature in wallet…</span>
               ) : isConfirming ? (
-                <span>Confirming on Sepolia\u2026</span>
+                <span>Confirming on Sepolia…</span>
               ) : !isConnected ? (
                 <span>Connect MetaMask &amp; review</span>
               ) : (
-                <span>Review transfer</span>
+                <span>Review &amp; send</span>
               )}
             </button>
           </div>
@@ -743,10 +758,14 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
                 <div>
                   <p className="text-xs text-[#7a9187]">You send</p>
                   <p className="text-base font-bold text-[#F4F1E8] font-mono tabular-nums leading-tight">
-                    {amount ? `${amount} ${selectedAsset}` : `0 ${selectedAsset}`}
+                    {isValidAmount ? `${amount} ${selectedAsset}` : 'Amount not entered'}
                   </p>
                   <p className="text-xs text-[#7a9187] font-mono tabular-nums">
-                    \u2248&nbsp;\u20b9{inrEstimate > 0 ? inrEstimate.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '0.00'}
+                    {isValidAmount
+                      ? inrEstimate !== null
+                        ? formatApproxFiat(inrEstimate, 'INR')
+                        : 'Indicative rate unavailable'
+                      : 'Estimated value unavailable'}
                   </p>
                 </div>
               </div>
@@ -766,7 +785,7 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
                 <div>
                   <p className="text-xs text-[#7a9187]">To</p>
                   <p className="text-sm font-mono font-medium tabular-nums text-[#F4F1E8]">
-                    {recipient ? truncateAddress(trimmedRecipient) : '0x\u2026'}
+                    {trimmedRecipient ? truncateAddress(trimmedRecipient) : 'Recipient not entered'}
                   </p>
                 </div>
               </div>
@@ -790,8 +809,8 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
               </div>
 
               <div className="flex items-center justify-between py-2.5">
-                <span className="text-[#7a9187]">Estimated time</span>
-                <span className="font-medium text-[#F4F1E8]">15\u201330 seconds</span>
+                <span className="text-[#7a9187]">Est. on-chain confirmation</span>
+                <span className="font-medium text-[#F4F1E8]">~15–30 seconds</span>
               </div>
             </div>
 
@@ -809,9 +828,9 @@ export function SendMoneyView({ initialAsset = 'ETH' }: SendMoneyViewProps) {
               }`}
             >
               {isSending
-                ? 'Confirming in wallet\u2026'
+                ? 'Confirming in wallet…'
                 : isConfirming
-                ? 'Processing on-chain\u2026'
+                ? 'Processing on-chain…'
                 : !isConnected
                 ? 'Connect in MetaMask'
                 : 'Confirm in MetaMask'}

@@ -2,25 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import type { MultiAssetMarketData } from "@/app/api/exchange-rate/route";
+import { formatINR, formatUSD, formatDateTimeParts } from "@/lib/format";
+import { getMarketSnapshot } from "@/lib/pricing";
 
 export type { MultiAssetMarketData as EthMarketData };
-
-function formatINR(value: number, decimals: number = 0): string {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: decimals,
-  }).format(value);
-}
-
-function formatUSD(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-}
 
 function Change({ value }: { value?: number }) {
   if (value === undefined) return null;
@@ -42,15 +27,28 @@ export function useEthPrice() {
   return useQuery<MultiAssetMarketData>({
     queryKey: ["multi-asset-price"],
     queryFn: async () => {
-      const res = await fetch("/api/exchange-rate");
-      if (!res.ok) throw new Error("Failed to fetch market exchange rates");
+      const res = await fetch("/api/exchange-rate", { cache: "no-store" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || "Failed to fetch market exchange rates");
+      }
       return res.json();
     },
     refetchInterval: 60_000,
-    staleTime: 55_000,
+    staleTime: 45_000,
+    refetchOnWindowFocus: true,
     retry: 2,
     retryDelay: (attempt) => Math.min(2000 * 2 ** attempt, 8000),
   });
+}
+
+export function useMarketSnapshot() {
+  const query = useEthPrice();
+  const snapshot = getMarketSnapshot(query.data, query.dataUpdatedAt || undefined);
+  return {
+    ...query,
+    snapshot,
+  };
 }
 
 export default function EthPriceTicker() {
@@ -76,9 +74,7 @@ export default function EthPriceTicker() {
 
   const eth = data.ethereum ?? data;
   const usdc = data.usdc;
-  const updatedAt = dataUpdatedAt
-    ? new Date(dataUpdatedAt).toLocaleTimeString()
-    : null;
+  const { timeStr: updatedAt } = formatDateTimeParts(dataUpdatedAt || data.fetchedAt);
 
   return (
     <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-2">
@@ -89,7 +85,7 @@ export default function EthPriceTicker() {
           <div className="flex items-center gap-2">
             <span className="text-blue-400 font-bold">Ξ</span>
             <span className="font-semibold text-white">ETH:</span>
-            <span className="text-white font-mono">{formatINR(eth.inr)}</span>
+            <span className="text-white font-mono">{formatINR(eth.inr, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
             <Change value={eth.inr_24h_change} />
           </div>
 
@@ -100,8 +96,8 @@ export default function EthPriceTicker() {
             <div className="flex items-center gap-2">
               <span className="text-emerald-400 font-bold">$</span>
               <span className="font-semibold text-white">USDC:</span>
-              <span className="text-white font-mono">{formatINR(usdc.inr, 2)}</span>
-              <span className="text-xs text-gray-400">(${formatUSD(usdc.usd)})</span>
+              <span className="text-white font-mono">{formatINR(usdc.inr, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className="text-xs text-gray-400">({formatUSD(usdc.usd)})</span>
               <Change value={usdc.inr_24h_change} />
             </div>
           )}
@@ -113,7 +109,7 @@ export default function EthPriceTicker() {
             <div className="hidden md:flex items-center gap-1.5 text-xs text-gray-400">
               <span>USD/INR Ref:</span>
               <span className="font-mono text-gray-200">
-                ₹{data.fiatReference.inrPerUsd.toFixed(2)}
+                {formatINR(data.fiatReference.inrPerUsd)}
               </span>
             </div>
           )}

@@ -16,6 +16,8 @@ import { useTokenBalances } from '@/hooks/use-token-balances'
 import { SUPPORTED_TOKENS, ERC20_MINIMAL_ABI, type SupportedAssetSymbol } from '@/lib/tokens'
 import SettlementTrackerModal from '@/app/components/settlement-tracker-modal'
 import { createTransfer, updateTransfer } from '@/lib/transfer-client'
+import { formatApproxFiat, formatGasFeeEth, formatINR } from '@/lib/format'
+import { getMarketSnapshot, calculateAssetInrValue } from '@/lib/pricing'
 import type { Transfer } from '../types/transfer'
 
 export function SendTransaction() {
@@ -90,16 +92,15 @@ export function SendTransaction() {
     isLoading: isConfirming,
   } = useWaitForTransactionReceipt({ hash })
 
-  // Real-time INR conversion
+  // Real-time INR conversion from single shared market snapshot
   const parsedAmount = parseFloat(amount)
+  const snapshot = getMarketSnapshot(marketData)
   const tokenRateInr =
-    selectedAsset === 'USDC'
-      ? (marketData?.usdc?.inr ?? marketData?.fiatReference?.inrPerUsd ?? 94.88)
-      : (marketData?.inr ?? 230000)
+    selectedAsset === 'USDC' ? snapshot.usdcInr : snapshot.ethInr
 
   const inrEstimate =
-    !isNaN(parsedAmount) && parsedAmount > 0 && tokenRateInr
-      ? parsedAmount * tokenRateInr
+    !isNaN(parsedAmount) && parsedAmount > 0
+      ? calculateAssetInrValue(parsedAmount, selectedAsset, marketData)
       : null
 
   useEffect(() => {
@@ -191,6 +192,13 @@ export function SendTransaction() {
         })
       }
 
+      const estimatedUsd =
+        selectedAsset === 'USDC'
+          ? num.toFixed(2)
+          : snapshot.ethUsd !== null
+            ? (num * snapshot.ethUsd).toFixed(2)
+            : null
+
       await createTransfer({
         senderAddress: address,
         recipientAddress: to,
@@ -198,9 +206,9 @@ export function SendTransaction() {
         chainId: Number(chainId),
         assetSymbol: selectedAsset,
         tokenAddress: selectedAsset === 'USDC' ? SUPPORTED_TOKENS.USDC.contractAddress : null,
-        inrSourceAmount: inrEstimate ? inrEstimate.toFixed(2) : null,
-        referenceRate: tokenRateInr.toString(),
-        estimatedDestinationUsd: selectedAsset === 'USDC' ? num.toFixed(2) : (num * (marketData?.usd ?? 2400)).toFixed(2),
+        inrSourceAmount: inrEstimate !== null ? inrEstimate.toFixed(2) : null,
+        referenceRate: tokenRateInr !== null ? tokenRateInr.toString() : null,
+        estimatedDestinationUsd: estimatedUsd,
         status: 'pending',
         transactionHash: txHash,
         isSimulatedPayout: true,
@@ -230,7 +238,7 @@ export function SendTransaction() {
   }
 
   const gasFee = receipt
-    ? `${formatEther(receipt.gasUsed * receipt.effectiveGasPrice)} ETH`
+    ? formatGasFeeEth(receipt.gasUsed * receipt.effectiveGasPrice, 'wei').formatted
     : undefined
 
   const transferStatus: Transfer['status'] = error || receiptError
@@ -299,7 +307,7 @@ export function SendTransaction() {
           <div className="flex items-center justify-between text-xs font-medium text-gray-400 mb-1">
             <label htmlFor="send-amount">Amount ({selectedAsset})</label>
             <span className="text-[11px] text-gray-400 font-mono">
-              1 {selectedAsset} ≈ ₹{tokenRateInr.toLocaleString('en-IN', { maximumFractionDigits: selectedAsset === 'USDC' ? 2 : 0 })}
+              {tokenRateInr !== null ? `1 ${selectedAsset} ${formatApproxFiat(tokenRateInr, 'INR')}` : 'Rate unavailable'}
             </span>
           </div>
           <div className="relative">
@@ -440,12 +448,14 @@ export function SendTransaction() {
                 amount: displayTransfer.amount,
                 assetSymbol: displayTransfer.assetSymbol,
                 chainId: Number(displayTransfer.chainId),
-                inrSourceAmount: inrEstimate ? inrEstimate.toFixed(2) : null,
-                referenceRate: tokenRateInr.toString(),
+                inrSourceAmount: inrEstimate !== null ? inrEstimate.toFixed(2) : null,
+                referenceRate: tokenRateInr !== null ? tokenRateInr.toString() : null,
                 estimatedDestinationUsd:
                   selectedAsset === 'USDC'
-                    ? parsedAmount.toFixed(2)
-                    : (parsedAmount * (marketData?.usd ?? 2400)).toFixed(2),
+                    ? (!isNaN(parsedAmount) ? parsedAmount.toFixed(2) : null)
+                    : snapshot.ethUsd !== null && !isNaN(parsedAmount)
+                      ? (parsedAmount * snapshot.ethUsd).toFixed(2)
+                      : null,
                 networkFeeEth: gasFee,
                 status: displayTransfer.status,
                 transactionHash: displayTransfer.transactionHash ?? null,

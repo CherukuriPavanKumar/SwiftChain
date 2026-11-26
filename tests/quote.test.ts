@@ -43,6 +43,8 @@ const mockMarketData: MultiAssetMarketData = {
     source: "CoinGecko USDC Spot Rate",
     timestamp: Math.floor(Date.now() / 1000) - 10,
   },
+  fetchedAt: Date.now() - 10_000,
+  priceSource: "coingecko" as const,
 };
 
 describe("Quote Engine (calculateRemittanceQuote)", () => {

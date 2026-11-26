@@ -4,16 +4,21 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useGasPrice } from 'wagmi';
 import { sepolia } from 'wagmi/chains';
-import { useEthPrice } from '@/app/components/eth-price-ticker';
+import { useMarketSnapshot } from '@/app/components/eth-price-ticker';
 import { EthereumIcon, UsdcIcon } from './token-icons';
 import {
   calculateRemittanceQuote,
-  formatINR,
-  formatUSD,
-  formatTokenAmount,
   DEFAULT_ETH_TRANSFER_GAS_UNITS,
   DEFAULT_ERC20_TRANSFER_GAS_UNITS,
 } from '@/lib/quote';
+import {
+  formatApproxFiat,
+  formatDateTimeParts,
+  formatGasFeeEth,
+  formatINR,
+  formatTokenAmount,
+  formatUSD,
+} from '@/lib/format';
 import {
   calculateRemittanceComparison,
   SUPPORTED_DESTINATIONS,
@@ -42,8 +47,15 @@ interface ExchangeViewProps {
 const QUICK_AMOUNTS = [5000, 10000, 25000, 50000, 100000];
 
 export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
-  const { data: marketData, isLoading, refetch, dataUpdatedAt } = useEthPrice();
-  const { data: gasPriceWei } = useGasPrice({ chainId: sepolia.id });
+  const {
+    data: marketData,
+    snapshot,
+    isLoading,
+    isError: isPriceError,
+    refetch,
+    dataUpdatedAt,
+  } = useMarketSnapshot();
+  const { data: gasPriceWei, isError: isGasError } = useGasPrice({ chainId: sepolia.id });
 
   // Mode: "remittance" vs "converter"
   const [activeMode, setActiveMode] = useState<'remittance' | 'converter'>('remittance');
@@ -89,34 +101,36 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
       ? DEFAULT_ERC20_TRANSFER_GAS_UNITS
       : DEFAULT_ETH_TRANSFER_GAS_UNITS;
 
-  // Remittance quote calculation
+  // Remittance quote calculation (requires live marketData + gas price)
   const quote = useMemo(() => {
-    if (!marketData || !isValidAmount) return null;
+    if (!marketData || !snapshot.available || !isValidAmount) return null;
 
     return calculateRemittanceQuote({
       sourceAmountInr: parsedInr,
       assetSymbol: selectedAsset,
       marketData,
       gasUnits: effectiveGasUnits,
-      gasPriceWei: gasPriceWei ?? BigInt(1500000000),
+      gasPriceWei: gasPriceWei ?? undefined,
     });
-  }, [marketData, parsedInr, isValidAmount, selectedAsset, effectiveGasUnits, gasPriceWei]);
+  }, [marketData, snapshot.available, parsedInr, isValidAmount, selectedAsset, effectiveGasUnits, gasPriceWei]);
 
-  // Market prices
-  const ethPrice = marketData?.ethereum ?? marketData;
-  const usdcPrice = marketData?.usdc;
-  const spotRateInrPerUsd = marketData?.usdc?.inr ?? marketData?.fiatReference?.inrPerUsd ?? 94.88;
+  const spotRateInrPerUsd = snapshot.usdcInr;
+  const liveGasFeeInr = quote?.fees.estimatedNetworkFeeInr;
+  const formattedQuoteGas = useMemo(() => {
+    if (!gasPriceWei || isGasError) return formatGasFeeEth(null);
+    return formatGasFeeEth(effectiveGasUnits * gasPriceWei, 'wei');
+  }, [gasPriceWei, isGasError, effectiveGasUnits]);
 
-  // Benchmark calculations
+  // Benchmark calculations using actual quote gas fee in INR
   const comparison = useMemo(() => {
-    if (!isValidAmount || !spotRateInrPerUsd) return null;
+    if (!isValidAmount || spotRateInrPerUsd === null) return null;
     return calculateRemittanceComparison(
       parsedInr,
       spotRateInrPerUsd,
       selectedCorridorId,
-      25 // estimated gas INR
+      liveGasFeeInr ?? 0
     );
-  }, [parsedInr, spotRateInrPerUsd, selectedCorridorId, isValidAmount]);
+  }, [parsedInr, spotRateInrPerUsd, selectedCorridorId, isValidAmount, liveGasFeeInr]);
 
   const selectedCorridor = useMemo(() => {
     return (
@@ -136,30 +150,28 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
 
   // Formatted crypto delivery amount with readable token decimals
   const formattedDeliveredAmount = useMemo(() => {
-    if (!quote) return '0.00';
-    const val = parseFloat(quote.destinationCryptoAmount);
-    if (isNaN(val)) return '0.00';
-    return selectedAsset === 'USDC' ? val.toFixed(2) : val.toFixed(6);
-  }, [quote, selectedAsset]);
+    if (!quote) return snapshot.available ? '0.00' : 'Unavailable';
+    return formatTokenAmount(quote.destinationCryptoAmount, selectedAsset, { includeSymbol: false });
+  }, [quote, selectedAsset, snapshot.available]);
 
   // Converter calculation
   const converterResult = useMemo(() => {
     const num = parseFloat(converterValue);
-    if (!marketData || isNaN(num) || num <= 0) return '0.00';
+    if (!snapshot.available) return 'Rate unavailable';
+    if (isNaN(num) || num <= 0) return '0.00';
 
     const tokenPriceInr =
-      selectedAsset === 'USDC'
-        ? (marketData.usdc?.inr ?? marketData.fiatReference?.inrPerUsd ?? 94.88)
-        : (ethPrice?.inr ?? 230000);
+      selectedAsset === 'USDC' ? snapshot.usdcInr : snapshot.ethInr;
+    if (!tokenPriceInr || tokenPriceInr <= 0) return 'Rate unavailable';
 
     if (converterDirection === 'inr-to-crypto') {
       const tokens = num / tokenPriceInr;
-      return selectedAsset === 'USDC' ? tokens.toFixed(2) : tokens.toFixed(6);
+      return formatTokenAmount(tokens, selectedAsset, { includeSymbol: false });
     } else {
       const inr = num * tokenPriceInr;
-      return inr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return formatINR(inr);
     }
-  }, [marketData, converterValue, selectedAsset, converterDirection, ethPrice]);
+  }, [snapshot, converterValue, selectedAsset, converterDirection]);
 
   function handleLockAndSend() {
     if (!onLockRateAndSend || !quote) return;
@@ -229,7 +241,7 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
 
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <span className="text-lg font-bold text-[#8BE3BB] shrink-0">\u20b9</span>
+                        <span className="text-lg font-bold text-[#8BE3BB] shrink-0">₹</span>
                         <input
                           type="number"
                           min="100"
@@ -258,7 +270,7 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
                               : 'bg-[#0d1e17] text-[#7a9187] border border-[#233a30]/50 hover:text-[#F4F1E8] hover:bg-[#152920]'
                           }`}
                         >
-                          \u20b9{amt.toLocaleString('en-IN')}
+                          ₹{amt.toLocaleString('en-IN')}
                         </button>
                       ))}
                     </div>
@@ -331,22 +343,22 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
                     </div>
 
                     <p className="text-xs text-[#7a9187] font-mono tabular-nums">
-                      {quote ? formatUSD(quote.estimatedUsdEquivalent) : '$0.00 USD'}
-                      <span className="text-[#7a9187]/50 mx-1">&middot;</span>
-                      Rate: 1 {selectedAsset} = \u20b9
+                      {quote ? `${formatUSD(quote.estimatedUsdEquivalent)} USD` : 'USD estimate unavailable'}
+                      <span className="text-[#7a9187]/50 mx-1">·</span>
+                      Rate: 1 {selectedAsset} ={' '}
                       {selectedAsset === 'USDC'
-                        ? spotRateInrPerUsd.toFixed(2)
-                        : (ethPrice?.inr ?? 230000).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        ? formatINR(snapshot.usdcInr)
+                        : formatINR(snapshot.ethInr)}
                     </p>
                   </div>
                 </div>
 
-                {/* 3. 60-Second Rate Lock Banner */}
+                {/* 3. 60-Second Quote Window Banner */}
                 <div className={`${innerBlockCls} p-4 space-y-3 mt-3`}>
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
                       <Lock className="w-3.5 h-3.5 text-[#8BE3BB]" />
-                      <span className="font-semibold text-[#F4F1E8]">Rate guarantee</span>
+                      <span className="font-semibold text-[#F4F1E8]">Quote window</span>
                     </div>
 
                     <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#152920] border border-[#233a30] text-xs font-mono text-[#8BE3BB] tabular-nums">
@@ -358,32 +370,35 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
                   {/* Transparent Fee & Delivery Table */}
                   <div className="space-y-1.5 text-xs pt-1 border-t border-[#233a30]/50">
                     <div className="flex items-center justify-between text-[#7a9187]">
-                      <span>Reference spot rate</span>
+                      <span>Indicative spot rate</span>
                       <span className="font-mono tabular-nums text-[#a6b8b0]">
-                        1 {selectedAsset} = \u20b9
+                        1 {selectedAsset} ={' '}
                         {selectedAsset === 'USDC'
-                          ? spotRateInrPerUsd.toFixed(2)
-                          : (ethPrice?.inr ?? 230000).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                          ? formatINR(snapshot.usdcInr)
+                          : formatINR(snapshot.ethInr)}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between text-[#7a9187]">
-                      <span>Estimated gas fee</span>
+                      <span>Estimated network fee</span>
                       <span className="font-mono tabular-nums text-[#a6b8b0]">
-                        {quote ? quote.fees.estimatedNetworkFeeEth : '0.000042'} ETH (~
-                        {quote ? formatINR(quote.fees.estimatedNetworkFeeInr) : '\u20b99.50'})
+                        {formattedQuoteGas.status === 'unavailable'
+                          ? 'Unavailable'
+                          : quote
+                            ? `${formattedQuoteGas.formatted} (≈ ${formatINR(quote.fees.estimatedNetworkFeeInr)})`
+                            : formattedQuoteGas.formatted}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between text-[#7a9187]">
                       <span>Platform fee</span>
-                      <span className="font-mono tabular-nums text-[#6ED6A8]">\u20b90.00 (0% on testnet)</span>
+                      <span className="font-mono tabular-nums text-[#6ED6A8]">₹0.00 (0% on testnet)</span>
                     </div>
 
                     <div className="flex items-center justify-between pt-1.5 border-t border-[#233a30]/40 font-semibold text-[#F4F1E8]">
-                      <span>Guaranteed delivery</span>
+                      <span>Estimated recipient amount</span>
                       <span className="font-mono tabular-nums text-[#8BE3BB]">
-                        {quote ? `${formattedDeliveredAmount} ${selectedAsset}` : '0.00'}
+                        {quote ? `${formattedDeliveredAmount} ${selectedAsset}` : 'Unavailable'}
                       </span>
                     </div>
                   </div>
@@ -463,7 +478,6 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
 
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-[#8BE3BB] truncate">
-                      {converterDirection === 'inr-to-crypto' ? '' : '\u20b9'}
                       {converterResult}
                     </p>
                     <span className="px-2.5 py-1 rounded-md bg-[#152920] border border-[#233a30] text-xs font-bold font-mono tabular-nums text-[#F4F1E8] shrink-0">
@@ -540,10 +554,10 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
 
               <div className="text-right">
                 <p className="text-xs sm:text-sm font-bold font-mono tabular-nums text-[#F4F1E8]">
-                  \u20b9{(ethPrice?.inr ?? 230000).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                  {formatINR(snapshot.ethInr)}
                 </p>
                 <p className="text-xs font-mono tabular-nums text-[#7a9187]">
-                  ${(ethPrice?.usd ?? 2400).toLocaleString('en-US', { maximumFractionDigits: 2 })} USD
+                  {snapshot.ethUsd !== null ? `${formatUSD(snapshot.ethUsd)} USD` : 'USD unavailable'}
                 </p>
               </div>
             </div>
@@ -560,10 +574,10 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
 
               <div className="text-right">
                 <p className="text-xs sm:text-sm font-bold font-mono tabular-nums text-[#F4F1E8]">
-                  \u20b9{spotRateInrPerUsd.toFixed(2)}
+                  {formatINR(snapshot.usdcInr)}
                 </p>
                 <span className="inline-block px-1.5 py-0.5 rounded-md text-xs font-medium bg-[#152920] border border-[#233a30] text-[#6ED6A8]">
-                  $1.00 pegged
+                  {snapshot.usdcUsd !== null ? `${formatUSD(snapshot.usdcUsd)} ref` : 'USD ref'}
                 </span>
               </div>
             </div>
@@ -571,11 +585,25 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
             {/* Live Status Footnote */}
             <div className="flex items-center justify-between text-xs text-[#7a9187] pt-1">
               <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#6ED6A8]" />
-                <span>Live feed online</span>
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    isPriceError || !snapshot.available
+                      ? 'bg-[#FF8585]'
+                      : snapshot.isStale
+                        ? 'bg-[#F2C66D]'
+                        : 'bg-[#6ED6A8]'
+                  }`}
+                />
+                <span>
+                  {isPriceError || !snapshot.available
+                    ? 'Market feed unavailable'
+                    : snapshot.isStale
+                      ? 'Market feed stale'
+                      : 'Market feed active'}
+                </span>
               </span>
               <span className="font-mono tabular-nums">
-                {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString() : 'Recent'}
+                {dataUpdatedAt ? formatDateTimeParts(dataUpdatedAt).timeStr : '—'}
               </span>
             </div>
           </div>
@@ -623,7 +651,7 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
                 </div>
               </div>
               <p className="text-xs text-[#7a9187] mt-0.5">
-                On a \u20b9{parsedInr > 0 ? parsedInr.toLocaleString('en-IN') : '10,000'} transfer
+                On a ₹{parsedInr > 0 ? parsedInr.toLocaleString('en-IN') : '10,000'} illustrative transfer
               </p>
             </div>
 
@@ -633,22 +661,25 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
               <div className={`rounded-lg bg-[#071410] border border-[#8BE3BB]/20 p-3 space-y-1.5`}>
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-[#F4F1E8]">SwiftChain</span>
+                    <span className="font-bold text-[#F4F1E8]">SwiftChain (Testnet)</span>
                     <span className="px-1.5 py-0.5 rounded-md text-xs font-semibold bg-[#152920] border border-[#233a30] text-[#6ED6A8]">
-                      Best value
+                      0% platform fee
                     </span>
                   </div>
                   <span className="font-bold font-mono tabular-nums text-[#8BE3BB]">
-                    {selectedCorridor.currencySymbol}
-                    {swiftchainProvider?.destinationAmountDelivered.toFixed(2) ?? '105.20'}
+                    {swiftchainProvider
+                      ? `${selectedCorridor.currencySymbol}${swiftchainProvider.destinationAmountDelivered.toFixed(2)}`
+                      : 'Unavailable'}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-[#7a9187]">
-                  <span>0% platform + ~\u20b925 gas</span>
+                  <span>
+                    0% platform + {liveGasFeeInr !== undefined ? `${formatApproxFiat(liveGasFeeInr, 'INR')} gas` : 'gas fee unavailable'}
+                  </span>
                   <span className="text-[#6ED6A8] flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    <span>under 30 seconds</span>
+                    <span>~15–30s on-chain · fiat simulated</span>
                   </span>
                 </div>
               </div>
@@ -656,16 +687,17 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
               {/* Traditional Bank Wire */}
               <div className={`${innerBlockCls} p-3 space-y-1.5 opacity-80`}>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium text-[#F4F1E8]">Bank wire (SWIFT)</span>
+                  <span className="font-medium text-[#F4F1E8]">Bank wire (SWIFT benchmark)</span>
                   <span className="font-mono tabular-nums text-[#7a9187]">
-                    {selectedCorridor.currencySymbol}
-                    {bankWireProvider?.destinationAmountDelivered.toFixed(2) ?? '98.40'}
+                    {bankWireProvider
+                      ? `${selectedCorridor.currencySymbol}${bankWireProvider.destinationAmountDelivered.toFixed(2)}`
+                      : 'Unavailable'}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-[#7a9187]">
-                  <span>~3.5% FX spread + \u20b91,500</span>
-                  <span>3\u20135 business days</span>
+                  <span>3.0% FX spread + ₹1,500 + $15 corr.</span>
+                  <span>2–4 business days</span>
                 </div>
               </div>
 
@@ -674,14 +706,15 @@ export function ExchangeView({ onLockRateAndSend }: ExchangeViewProps) {
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium text-[#F4F1E8]">Money transfer operator</span>
                   <span className="font-mono tabular-nums text-[#7a9187]">
-                    {selectedCorridor.currencySymbol}
-                    {legacyMtoProvider?.destinationAmountDelivered.toFixed(2) ?? '96.10'}
+                    {legacyMtoProvider
+                      ? `${selectedCorridor.currencySymbol}${legacyMtoProvider.destinationAmountDelivered.toFixed(2)}`
+                      : 'Unavailable'}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-[#7a9187]">
-                  <span>~4.0% FX spread + fee</span>
-                  <span>1\u20132 business days</span>
+                  <span>2.2% FX spread + ₹400 fee</span>
+                  <span>1–2 business days</span>
                 </div>
               </div>
             </div>

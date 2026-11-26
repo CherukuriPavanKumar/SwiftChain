@@ -1,7 +1,13 @@
 'use client';
 
 import React from 'react';
-import { formatINR } from '@/lib/comparison';
+import {
+  formatINR,
+  formatGasFeeEth,
+  formatDateTimeParts,
+  truncateAddress,
+  truncateHash,
+} from '@/lib/format';
 import { Check, X, ExternalLink, Clock, AlertCircle, ArrowRight } from 'lucide-react';
 
 export interface SettlementTrackerData {
@@ -30,11 +36,6 @@ interface SettlementTrackerModalProps {
   onClose: () => void;
 }
 
-function truncateAddress(addr: string) {
-  if (!addr || addr.length < 10) return addr;
-  return `${addr.slice(0, 6)}\u2026${addr.slice(-4)}`;
-}
-
 export default function SettlementTrackerModal({
   transfer,
   isOpen,
@@ -57,6 +58,14 @@ export default function SettlementTrackerModal({
   const formattedInr = transfer.inrSourceAmount
     ? formatINR(parseFloat(transfer.inrSourceAmount))
     : null;
+
+  const formattedGas = transfer.networkFeeEth
+    ? formatGasFeeEth(transfer.networkFeeEth, 'eth')
+    : null;
+  const explorerUrl =
+    transfer.chainId === 1
+      ? `https://etherscan.io/tx/${transfer.transactionHash}`
+      : `https://sepolia.etherscan.io/tx/${transfer.transactionHash}`;
 
   return (
     <div
@@ -105,14 +114,14 @@ export default function SettlementTrackerModal({
             <div>
               <span className="text-[#7a9187] text-xs block">Source value</span>
               <span className="font-mono text-[#a6b8b0] tabular-nums">
-                {formattedInr ?? '\u2014'}
+                {formattedInr ?? '—'}
               </span>
             </div>
 
             <div>
               <span className="text-[#7a9187] text-xs block">Destination estimate</span>
               <span className="font-mono text-[#8BE3BB] font-semibold tabular-nums">
-                {transfer.estimatedDestinationUsd ? `$${transfer.estimatedDestinationUsd} USD` : '\u2014'}
+                {transfer.estimatedDestinationUsd ? `$${transfer.estimatedDestinationUsd} USD` : '—'}
               </span>
             </div>
 
@@ -157,9 +166,9 @@ export default function SettlementTrackerModal({
               <span className="text-[#a6b8b0] font-medium">
                 Sepolia testnet (ID: {transfer.chainId ?? 11155111})
               </span>
-              {transfer.networkFeeEth && (
+              {formattedGas && formattedGas.status !== 'unavailable' && (
                 <span className="block text-xs text-[#7a9187] font-mono tabular-nums">
-                  Gas: {transfer.networkFeeEth.slice(0, 8)} ETH
+                  Gas: {formattedGas.formatted}
                 </span>
               )}
             </div>
@@ -182,7 +191,7 @@ export default function SettlementTrackerModal({
               </div>
               <p className="text-xs text-[#7a9187]">
                 Target asset: <strong className="text-[#a6b8b0] font-medium">{transfer.assetSymbol}</strong> on Ethereum Sepolia.
-                {transfer.referenceRate && ` Rate locked at 1 ${transfer.assetSymbol} \u2248 \u20b9${parseFloat(transfer.referenceRate).toLocaleString('en-IN')}.`}
+                {transfer.referenceRate && ` Rate at creation: 1 ${transfer.assetSymbol} ≈ ${formatINR(parseFloat(transfer.referenceRate))}.`}
               </p>
             </div>
           </div>
@@ -256,17 +265,17 @@ export default function SettlementTrackerModal({
               {transfer.transactionHash ? (
                 <div className="mt-1 space-y-0.5">
                   <a
-                    href={`https://sepolia.etherscan.io/tx/${transfer.transactionHash}`}
+                    href={explorerUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="text-[#8BE3BB] hover:underline font-mono text-xs tabular-nums inline-flex items-center gap-1"
                   >
-                    <span>Tx: {transfer.transactionHash.slice(0, 14)}\u2026{transfer.transactionHash.slice(-8)}</span>
+                    <span>Tx: {truncateHash(transfer.transactionHash, 14, 8)}</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
-                  {transfer.networkFeeEth && (
+                  {formattedGas && formattedGas.status !== 'unavailable' && (
                     <span className="block text-xs text-[#7a9187] font-mono tabular-nums">
-                      Gas paid: {transfer.networkFeeEth.slice(0, 8)} ETH
+                      Gas paid: {formattedGas.formatted}
                     </span>
                   )}
                 </div>
@@ -303,7 +312,7 @@ export default function SettlementTrackerModal({
               <div className="flex items-center justify-between">
                 <span className="font-bold text-[#F4F1E8]">4. Consensus &amp; finality</span>
                 <span className="text-xs text-[#7a9187] font-mono tabular-nums">
-                  {confirmedAtDate ? confirmedAtDate.toLocaleTimeString() : isPending ? 'Awaiting block' : '\u2014'}
+                  {confirmedAtDate ? formatDateTimeParts(confirmedAtDate).timeStr : isPending ? 'Awaiting block' : '—'}
                 </span>
               </div>
               <p className="text-xs text-[#7a9187]">
@@ -312,7 +321,7 @@ export default function SettlementTrackerModal({
                   : isFailed
                     ? 'Transaction reverted on-chain. Funds were not transferred.'
                     : isPending
-                      ? 'Transaction in mempool. Waiting for block validation\u2026'
+                      ? 'Transaction in mempool. Waiting for block validation…'
                       : 'Pending preceding steps.'}
               </p>
             </div>
@@ -356,7 +365,7 @@ export default function SettlementTrackerModal({
                   </span>
                 ) : isPayoutPending ? (
                   <span className="text-[#F2C66D]">
-                    Processing simulated settlement rails (ACH/Fedwire simulation delay)\u2026
+                    Processing simulated settlement rails (ACH/Fedwire simulation delay)…
                   </span>
                 ) : (
                   <span>Awaiting on-chain transaction confirmation before triggering payout simulation.</span>

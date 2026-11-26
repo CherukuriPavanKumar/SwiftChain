@@ -3,35 +3,13 @@ import { sepolia } from "wagmi/chains";
 import type { MultiAssetMarketData, TokenMarketPrice } from "@/app/api/exchange-rate/route";
 import type { RemittanceQuote, FeeBreakdown } from "@/types/quote";
 import { SUPPORTED_TOKENS, type SupportedAssetSymbol } from "./tokens";
+import { formatINR, formatUSD, formatTokenAmount } from "./format";
+
+export { formatINR, formatUSD, formatTokenAmount };
 
 export const QUOTE_TTL_MS = 60_000; // 60 seconds validity
 export const DEFAULT_ETH_TRANSFER_GAS_UNITS = BigInt(21000); // 21k gas for native ETH
 export const DEFAULT_ERC20_TRANSFER_GAS_UNITS = BigInt(65000); // 65k gas buffer for ERC-20 transfer
-
-export function formatINR(value: number): string {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-}
-
-export function formatUSD(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-}
-
-export function formatTokenAmount(value: string | number, symbol: SupportedAssetSymbol = 'ETH'): string {
-  const num = typeof value === "string" ? parseFloat(value) : value;
-  if (isNaN(num)) return `0.00 ${symbol}`;
-  const decimals = symbol === 'USDC' ? 2 : 6;
-  return `${num.toFixed(decimals)} ${symbol}`;
-}
 
 export function formatETH(value: string | number): string {
   return formatTokenAmount(value, 'ETH');

@@ -35,7 +35,7 @@ export function AccountView({ userSession }: AccountViewProps) {
 
   const displayName =
     userSession?.name || (userSession?.email ? userSession.email.split('@')[0] : 'SwiftChain user');
-  const displayEmail = userSession?.email || '\u2014';
+  const displayEmail = userSession?.email || '—';
   const emailVerified = Boolean(userSession?.emailVerified);
 
   const initials = displayName
@@ -201,7 +201,7 @@ export function AccountView({ userSession }: AccountViewProps) {
         className="w-full py-2.5 rounded-lg bg-[#1a0f0f] hover:bg-[#281414] border border-[#3d1f1f] text-xs sm:text-sm font-semibold text-[#e57373] transition-colors duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
       >
         <LogOut className="w-4 h-4" />
-        <span>{signingOut ? 'Signing out\u2026' : 'Sign out'}</span>
+        <span>{signingOut ? 'Signing out…' : 'Sign out'}</span>
       </button>
     </div>
   );

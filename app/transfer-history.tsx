@@ -6,6 +6,8 @@ import { useConnection } from "wagmi";
 import { fetchTransfers } from "@/lib/transfer-client";
 import { useEthPrice } from "./components/eth-price-ticker";
 import SettlementTrackerModal, { type SettlementTrackerData } from "./components/settlement-tracker-modal";
+import { formatApproxFiat, formatINR, truncateAddress } from "@/lib/format";
+import { calculateAssetInrValue } from "@/lib/pricing";
 
 export interface TransferRecord {
   id: number;
@@ -26,11 +28,6 @@ export interface TransferRecord {
   payoutCompletedAt?: string | null;
   createdAt: string;
   confirmedAt: string | null;
-}
-
-function truncateAddress(address: string) {
-  if (!address || address.length < 10) return address;
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -105,19 +102,11 @@ export default function TransferHistory() {
 
   function formatFiatValue(tx: TransferRecord): string | null {
     if (tx.inrSourceAmount) {
-      return `₹${parseFloat(tx.inrSourceAmount).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+      const n = parseFloat(tx.inrSourceAmount);
+      if (Number.isFinite(n) && n > 0) return formatINR(n);
     }
-    // Fallback calculation using live rate
-    if (tx.assetSymbol === "USDC") {
-      const usdcInr = marketData?.usdc?.inr ?? 94.88;
-      const val = parseFloat(tx.amount) * usdcInr;
-      return !isNaN(val) ? `≈ ₹${val.toFixed(2)}` : null;
-    }
-    if (marketData?.inr) {
-      const val = parseFloat(tx.amount) * marketData.inr;
-      return !isNaN(val) ? `≈ ₹${val.toFixed(2)}` : null;
-    }
-    return null;
+    const val = calculateAssetInrValue(tx.amount, tx.assetSymbol, marketData);
+    return val !== null ? formatApproxFiat(val, "INR") : null;
   }
 
   return (

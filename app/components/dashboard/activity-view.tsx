@@ -1,13 +1,19 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useConnection } from 'wagmi';
 import { fetchTransfers } from '@/lib/transfer-client';
 import type { TransferRecord } from '@/app/transfer-history';
 import { useEthPrice } from '@/app/components/eth-price-ticker';
 import SettlementTrackerModal, { type SettlementTrackerData } from '@/app/components/settlement-tracker-modal';
 import { EthereumIcon, UsdcIcon } from './token-icons';
+import {
+  formatApproxFiat,
+  formatDateTimeParts,
+  truncateAddress,
+} from '@/lib/format';
+import { calculateAssetInrValue } from '@/lib/pricing';
 import {
   Search,
   ChevronDown,
@@ -32,11 +38,6 @@ type AssetFilterType = 'all' | 'ETH' | 'USDC';
 type DateFilterType = 'all' | '24h' | '7d' | '30d';
 
 const ITEMS_PER_PAGE = 10;
-
-function truncateAddress(addr: string | null | undefined): string {
-  if (!addr || addr.length < 10) return addr || '\u2014';
-  return `${addr.slice(0, 6)}\u2026${addr.slice(-4)}`;
-}
 
 export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
   const { address } = useConnection();
@@ -101,41 +102,45 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
     },
   });
 
-  // Calculate live INR fiat valuation
+  // ---------------------------------------------------------------------------
+  // Auto-reconcile stale pending transfers once on mount (and when address changes)
+  // Calls the server-side /api/transfers/reconcile endpoint which checks receipts
+  // via Alchemy and marks confirmed/failed transfers correctly in the DB.
+  // ---------------------------------------------------------------------------
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!address) return;
+    // Only trigger if there are known pending transfers
+    const hasPending = (transfers ?? []).some(
+      (t) => t.status === 'pending' || t.status === 'awaiting signature'
+    );
+    if (!hasPending) return;
+
+    fetch('/api/transfers/reconcile', { method: 'POST' })
+      .then((r) => r.json())
+      .then((result) => {
+        if (result?.reconciled > 0) {
+          // New confirmed/failed records — refresh the transfers list
+          queryClient.invalidateQueries({ queryKey: ['transfers', address] });
+        }
+      })
+      .catch(() => {
+        // Reconciliation is best-effort; swallow errors silently
+      });
+  // Run when address changes or when transfers first load with pending items
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address, transfers !== undefined]);
+
+  // Calculate live INR fiat valuation from single shared pricing snapshot
   function formatFiat(tx: TransferRecord): string {
     if (tx.inrSourceAmount) {
       const num = parseFloat(tx.inrSourceAmount);
-      if (!isNaN(num) && num > 0) {
-        return `\u2248 \u20b9${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      if (Number.isFinite(num) && num > 0) {
+        return formatApproxFiat(num, 'INR');
       }
     }
-    const tokenAmount = parseFloat(tx.amount) || 0;
-    if (tx.assetSymbol === 'USDC') {
-      const rate = marketData?.usdc?.inr ?? marketData?.fiatReference?.inrPerUsd ?? 94.88;
-      return `\u2248 \u20b9${(tokenAmount * rate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    }
-    const rate = marketData?.ethereum?.inr ?? marketData?.inr ?? 230000;
-    return `\u2248 \u20b9${(tokenAmount * rate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  }
-
-  // Format date and time
-  function formatDateTimeParts(isoDate: string) {
-    try {
-      const d = new Date(isoDate);
-      const dateStr = new Intl.DateTimeFormat('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }).format(d);
-      const timeStr = new Intl.DateTimeFormat('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-      }).format(d);
-      return { dateStr, timeStr };
-    } catch {
-      return { dateStr: 'Recent', timeStr: '' };
-    }
+    const valInr = calculateAssetInrValue(tx.amount, tx.assetSymbol, marketData);
+    return formatApproxFiat(valInr, 'INR');
   }
 
   // Combined Multi-Filter Pipeline
@@ -241,7 +246,7 @@ export function ActivityView({ onNavigateToSend }: ActivityViewProps) {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search address or transaction hash\u2026"
+            placeholder="Search address or transaction hash…"
             className="w-full bg-transparent border-none outline-none text-xs sm:text-sm text-[#F4F1E8] placeholder:text-[#7a9187]/60 pl-2.5"
           />
           {searchQuery && (
